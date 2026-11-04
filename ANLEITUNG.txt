@@ -1,0 +1,94 @@
+ZEITNACHWEIS - private Arbeits- und Reisezeit-App
+==================================================
+
+Die App besteht aus vier Dateien: index.html, manifest.webmanifest, sw.js, icon.svg.
+Sie enthalten keine persönlichen Daten. Die Daten entstehen erst auf dem Handy
+und bleiben dort im Browser (plus Backups in Deinem privaten Google Drive).
+
+Alles hier mit PRIVATEN Konten und dem PRIVATEN Handy machen, nicht mit Firmenkonten.
+
+
+1. APP INS NETZ STELLEN (einmalig, kostenlos)
+---------------------------------------------
+Weg A: GitHub Pages
+  1. Auf github.com mit einem privaten Konto anmelden (bei Bedarf neu anlegen).
+  2. Neues Repository anlegen, Name z. B. "zeitnachweis", Sichtbarkeit "Public"
+     (Pages ist im Gratis-Konto nur für öffentliche Repos verfügbar; im Code stehen keine Daten).
+  3. "Add file" -> "Upload files" -> die vier Dateien hochladen -> "Commit changes".
+  4. Settings -> Pages -> Source "Deploy from a branch", Branch "main", Ordner "/ (root)" -> Save.
+  5. Nach 1-2 Minuten läuft die App unter  https://<dein-github-name>.github.io/zeitnachweis/
+
+Weg B (ohne öffentliches Repo): app.netlify.com/drop oder Cloudflare Pages,
+  Ordner hineinziehen, Adresse merken.
+
+Updates: geänderte Dateien einfach erneut hochladen. Die Daten auf dem Handy bleiben erhalten.
+
+
+2. AUFS HANDY (Android, Chrome)
+-------------------------------
+  1. Adresse in Chrome öffnen.
+  2. Menü (drei Punkte) -> "Zum Startbildschirm hinzufügen" bzw. "App installieren".
+  3. Ab jetzt immer über das Icon öffnen (dann markiert Chrome den Speicher als dauerhaft).
+  4. Mehr -> Einstellungen: Name, "Aufzeichnung ab", Bundesland Homeoffice, Wochenarbeitszeit,
+     Gehaltsstufen (z. B. Betrag pro Monat ab Monat X, später Jahresgehalt ab Monat Y), speichern.
+  Wichtig: Browserdaten von Chrome NICHT löschen, solange kein aktuelles Backup existiert.
+
+
+3. AUTOMATISCHES BACKUP IN GOOGLE DRIVE (einmalig ca. 10 Minuten, am besten am PC)
+---------------------------------------------------------------------------------
+  1. console.cloud.google.com mit dem privaten Google-Konto öffnen.
+  2. Oben "Projekt auswählen" -> "Neues Projekt", Name "Zeitnachweis" -> Erstellen.
+  3. Menü -> "APIs & Dienste" -> "Bibliothek" -> "Google Drive API" suchen -> Aktivieren.
+  4. Menü -> "Google Auth Platform" (früher "OAuth-Zustimmungsbildschirm") -> Jetzt starten:
+       App-Name "Zeitnachweis", Support-Mail = eigene Adresse, Zielgruppe "Extern",
+       Kontakt = eigene Adresse -> Erstellen.
+  5. "Zielgruppe" -> "Testnutzer" -> eigene Gmail-Adresse hinzufügen.
+     (Die App bleibt im Testmodus. Das reicht für die eigene Nutzung, nur Testnutzer dürfen sich anmelden.)
+  6. "Clients" -> "Client erstellen" -> Anwendungstyp "Webanwendung", Name "Zeitnachweis".
+     Unter "Autorisierte JavaScript-Quellen" eintragen:
+       https://<dein-github-name>.github.io        (ohne /zeitnachweis, ohne Schrägstrich am Ende)
+     Weiterleitungs-URIs leer lassen -> Erstellen.
+  7. Die Client-ID kopieren (endet auf .apps.googleusercontent.com). Sie ist kein Passwort.
+  8. In der App: Mehr -> Automatisches Drive-Backup -> Client-ID eintragen -> Speichern
+     -> "Mit Google Drive verbinden" -> privates Konto wählen -> Warnhinweis "Google hat diese App
+     nicht überprüft" mit "Weiter" bestätigen (es ist Deine eigene App) -> Zugriff erlauben.
+
+  Ab dann: Nach jeder Änderung aktualisiert die App nach ca. 3 Sekunden die Datei
+  "zeitnachweis-backup-JJJJ-MM-TT.json" im Drive-Ordner "Zeitnachweis Backups".
+  Pro Tag entsteht eine Datei, ältere Tage bleiben unverändert liegen. Google vermerkt
+  Erstellungs- und Änderungszeit selbst, das ist ein unabhängiger Zeitbeleg.
+  Grenzen: Upload nur, solange die App offen ist. Die Google-Anmeldung gilt rund 1 Stunde und
+  nur, solange die App läuft. Nach Ablauf oder nach einem Neustart der App erscheint oben
+  "Drive-Backup ausstehend." mit dem Knopf "Jetzt hochladen" (ein Tipp genügt).
+  Im Testmodus des Google-Projekts verlangt Google vmtl. etwa alle 7 Tage eine neue Zustimmung,
+  dann einfach erneut "Weiter" und "Zulassen".
+
+  Zugriff wieder entziehen: myaccount.google.com/permissions -> Zeitnachweis -> Zugriff entfernen.
+
+
+4. TÄGLICH
+----------
+  - Arbeit starten / Pause / Reise starten und beenden direkt per Knopf (Uhrzeit wird mitgespeichert).
+  - Abends unter "Details": Ort (Kunde nur als Kürzel), Stadt, fakturiert/intern, Anlass
+    ("wer hat Reise oder Mehrarbeit veranlasst"), wo die Belege liegen.
+  - Reisen innerhalb von Beginn und Ende zieht die App automatisch von der Arbeitszeit ab.
+  - Vergangene Tage ändern geht, verlangt aber einen Grund. Alte Versionen bleiben sichtbar.
+
+
+5. MONATLICH
+------------
+  - Monat -> "Monatsbericht (PDF)" -> Drucken -> "Als PDF speichern" -> in Drive ablegen.
+  - Monat -> "CSV exportieren" (öffnet sich in Excel/Sheets).
+  - Mit der offiziellen Zeiterfassung abgleichen, Abweichungen in der Notiz festhalten.
+  - Mehr -> Prüfung: Hashkette muss "intakt" zeigen. Den Kopf-Hash per Mail an Dich selbst
+    (privates Postfach) schicken. Damit gibt es einen unabhängigen Zeitbeleg für den Stand.
+
+
+6. HANDYWECHSEL / DATEN WIEDERHERSTELLEN
+----------------------------------------
+  Neueste Backup-Datei aus Drive aufs Handy laden -> App -> Mehr -> Importieren.
+  Der Import prüft die Hashkette und ersetzt den Stand im Browser.
+
+
+Hinweis: Die Warnungen (10 Stunden, 11 Stunden Ruhezeit, Pausen, Feiertage, Mindestlohn)
+sind eine Orientierung, keine Rechtsberatung.
