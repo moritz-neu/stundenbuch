@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#1f5f8b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   --bg:#f5f6f8; --card:#ffffff; --text:#1b1f24; --muted:#5f6b78; --line:#dde2e8;
@@ -84,13 +85,44 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
 nav button{background:none;border:none;font-size:.85rem;color:var(--muted);padding:8px 10px}
 nav button.on{color:var(--accent);font-weight:700}
-.banner{margin:0 0 10px}
+.banner{display:flex;align-items:center;gap:8px;background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:6px 6px 6px 10px;margin:0 0 8px;font-size:.85rem}
+.banner span{flex:1;min-width:0}
+.banner button{padding:5px 10px;font-size:.8rem;flex:0 0 auto}
+.acts{display:grid;gap:8px;margin-top:8px}
+.acts button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;font-size:.85rem;line-height:1.2}
+.acts button .ico{width:20px;height:20px}
+.tile small{display:block;font-size:.7rem;color:var(--muted);margin-top:2px}
+.toast.undo{display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px}
+.toast.undo button{background:none;border:none;color:var(--bg);font-weight:700;text-decoration:underline;padding:4px 6px}
+.day{flex-wrap:wrap}
+.day .sub{flex-basis:100%;display:flex;align-items:center;gap:8px;margin-top:6px;min-width:0}
+.tl.mini{height:6px;margin:0;border-radius:3px;flex:1 1 40%;min-width:60px}
+.tl.mini .p{top:1px;bottom:1px}
+.chips-in{display:flex;gap:4px;flex-wrap:nowrap;justify-content:flex-end;min-width:0;flex:0 1 auto}
+.chips-in .chip{margin:0;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.chips-in .away-chip{flex:0 0 auto;max-width:none}
+.away-chip{background:var(--reise-bg);color:var(--c-reise)}
+details.sec > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;margin:0;cursor:pointer}
+details.sec > summary::-webkit-details-marker{display:none}
+details.sec > summary h3{margin:0}
+details.sec > summary::after{content:'';width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px}
+details.sec[open] > summary{margin-bottom:10px}
+details.sec[open] > summary::after{transform:rotate(-135deg);margin-top:6px}
+details.trip{border-bottom:1px solid var(--line)}
+details.trip:last-child{border-bottom:none}
+details.trip > summary{display:flex;justify-content:space-between;gap:8px;padding:9px 2px;margin:0;font-size:.92rem}
+details.trip > summary span{min-width:0}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 84px 40px;gap:6px;margin-bottom:6px}
+.prow input,.prow select{padding:8px 6px;min-width:0}
+.prow input::-webkit-calendar-picker-indicator{display:none}
+.prow button{padding:0}
+.seg button{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 6px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
 .sheet{background:var(--card);width:100%;max-width:640px;border-radius:14px 14px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;z-index:60;font-size:.9rem;max-width:90vw}
 .ver{border-left:3px solid var(--line);padding:4px 0 4px 10px;margin:8px 0}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:.78rem;word-break:break-all}
-.ico{width:1.15em;height:1.15em;vertical-align:-.22em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.ico{width:1.15em;height:1.15em;vertical-align:-.22em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 h3 .ico{color:var(--muted)}
 nav button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px}
 nav button .ico{width:22px;height:22px}
@@ -150,7 +182,8 @@ details summary{cursor:pointer;margin:10px 0 4px}
   <symbol id="i-car" viewBox="0 0 24 24"><path d="M4 16v-4l2-5h12l2 5v4zM4 16v3M20 16v3M4 12h16"/><path d="M8 14h.01M16 14h.01" stroke-width="3"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-5h4v5"/></symbol>
-  <symbol id="i-building" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12M10 21v-5h4v5M9 11h.01M15 11h.01" /></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
   <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 13h18"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></symbol>
   <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/></symbol>
@@ -167,7 +200,7 @@ details summary{cursor:pointer;margin:10px 0 4px}
 <nav id="nav">
   <button data-act="nav:heute"><svg class="ico"><use href="#i-clock"/></svg>Heute</button>
   <button data-act="nav:tage"><svg class="ico"><use href="#i-list"/></svg>Tage</button>
-  <button data-act="nav:monat"><svg class="ico"><use href="#i-cal"/></svg>Monat</button>
+  <button data-act="nav:monat"><svg class="ico"><use href="#i-chart"/></svg>Auswertung</button>
   <button data-act="nav:mehr"><svg class="ico"><use href="#i-more"/></svg>Mehr</button>
 </nav>
 <div id="print"></div>
@@ -178,6 +211,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pad = n => String(n).padStart(2, '0');
 const WT = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const WTL = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
 const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
 function todayStr(d = new Date()){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -190,6 +224,7 @@ function fmtDate(s){ const [y,m,d] = s.split('-'); return WT[weekday(s)]+' '+d+'
 function fmtDT(iso){ const d = new Date(iso); return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+' '+hhmm(d); }
 function toMin(t){ if(!t || !/^\d{1,2}:\d{2}$/.test(t)) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 function fmtH(min){ min = Math.round(min || 0); const s = min < 0 ? '-' : ''; min = Math.abs(min); return s+Math.floor(min/60)+':'+pad(min%60)+' h'; }
+function fmtS(min){ return (Math.round(min) > 0 ? '+' : '')+fmtH(min); }
 function decH(min){ return ((min || 0) / 60).toFixed(2).replace('.', ','); }
 function eur(x){ return (x || 0).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2})+' €'; }
 function num(v){ const x = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(x) ? 0 : x; }
@@ -592,6 +627,13 @@ function dayIcon(d){
   return t || {Homeoffice:'home', 'Büro':'building', Kunde:'briefcase', Sonstiges:'pin'}[d.ortTyp] || 'pin';
 }
 function toast(msg){ const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function toastUndo(msg, fn){
+  const t = document.createElement('div'); t.className = 'toast undo';
+  t.innerHTML = '<span>'+esc(msg)+'</span><button>Rückgängig</button>';
+  t.querySelector('button').onclick = () => { t.remove(); fn().catch(e => toast('Fehler: '+e.message)); };
+  document.querySelectorAll('.toast.undo').forEach(x => x.remove());
+  document.body.appendChild(t); setTimeout(() => t.remove(), 10000);
+}
 function modal(title, body, buttons){
   return new Promise(res => {
     const m = document.createElement('div'); m.className = 'modal';
@@ -614,11 +656,12 @@ async function confirmBox(title, text, okLabel){ return modal(title, '<p>'+esc(t
 
 function banners(){
   const out = [], s = settings();
-  if(!s.bundesland) out.push('<div class="warn banner">Bitte unter Mehr → Einstellungen das Bundesland Deines Homeoffice wählen (für Feiertage und Soll).</div>');
-  if(!s.wohnort) out.push('<div class="warn banner">Bitte unter Mehr → Einstellungen Deinen Wohnort eintragen, damit die App Auswärtstage und Übernachtungen erkennt.</div>');
-  if(META.drivePending) out.push('<div class="warn banner row between"><span>Drive-Backup ausstehend.</span><button class="primary" data-act="drive-upload">Jetzt hochladen</button></div>');
+  const b = (text, act, label) => '<div class="banner">'+ico('warn')+'<span>'+text+'</span>'+(act ? '<button data-act="'+act+'">'+label+'</button>' : '')+'</div>';
+  const fehlt = [!s.bundesland && 'Bundesland', !s.wohnort && 'Wohnort'].filter(Boolean);
+  if(fehlt.length && ST.view !== 'mehr') out.push(b(fehlt.join(' und ')+' fehlt (für Feiertage und Auswärtstage)', 'nav:mehr', 'Eintragen'));
+  if(META.drivePending) out.push(b('Drive-Backup ausstehend', 'drive-upload', 'Hochladen'));
   const lb = META.lastBackup ? (Date.now() - new Date(META.lastBackup)) / 864e5 : null;
-  if(LOG.length && (lb === null || lb > 7)) out.push('<div class="warn banner row between"><span>'+(lb === null ? 'Noch kein Backup gemacht.' : 'Letztes Backup vor '+Math.floor(lb)+' Tagen.')+'</span><button data-act="share-backup">Backup teilen</button></div>');
+  if(LOG.length && (lb === null || lb > 7)) out.push(b(lb === null ? 'Noch kein Backup' : 'Letztes Backup vor '+Math.floor(lb)+' Tagen', 'share-backup', 'Sichern'));
   return out.join('');
 }
 function warnList(ws){ return ws.map(w => '<div class="warn">'+ico('warn')+' '+esc(w)+'</div>').join(''); }
@@ -643,19 +686,29 @@ function clockText(cs){
   const m = Math.max(0, Math.round(cs.min || 0)), hm = Math.floor(m / 60)+':'+pad(m % 60);
   return cs.live ? hm+':'+pad(new Date().getSeconds()) : hm+' h';
 }
-function timeline(date, d){
-  if(!d || d.storniert) return '';
+function segsOf(date, d){
+  // Abschnitte des Tages in Minuten: a = Arbeit, r = Reise, p = Pause (in dieser Reihenfolge gezeichnet)
   const now = date === todayStr() ? toMin(hhmm()) : null, segs = [];
+  if(!d || d.storniert) return {segs, now};
   const add = (cls, a, b) => { const x = toMin(a); let y = toMin(b || (now !== null && a ? hhmm() : '')); if(x === null || y === null) return; if(y < x) y = 1440; segs.push([cls, x, y]); };
   add('a', d.beginn, d.ende);
   for(const r of d.reisen) add('r', r.ab, r.an);
   for(const p of d.pausen) add('p', p.von, p.bis);
+  return {segs, now};
+}
+function bars(segs, lo, hi){
+  const pc = m => ((Math.min(hi, Math.max(lo, m)) - lo) / (hi - lo) * 100).toFixed(2)+'%';
+  return segs.map(([c, x, y]) => '<i class="'+c+'" style="left:'+pc(x)+';width:calc('+pc(y)+' - '+pc(x)+')"></i>').join('');
+}
+function miniBar(date, d){ const {segs} = segsOf(date, d); return segs.length ? '<div class="tl mini">'+bars(segs, 300, 1380)+'</div>' : ''; }
+function timeline(date, d){
+  const {segs, now} = segsOf(date, d);
   if(!segs.length) return '';
   const lo = Math.min(360, Math.floor(Math.min(...segs.map(s => s[1])) / 60) * 60), hi = Math.min(1440, Math.max(1320, Math.ceil(Math.max(...segs.map(s => s[2])) / 60) * 60));
   const pc = m => ((m - lo) / (hi - lo) * 100).toFixed(2)+'%', step = hi - lo > 1080 ? 240 : 120;
-  const bars = segs.map(([c, x, y]) => '<i class="'+c+'" style="left:'+pc(x)+';width:calc('+pc(y)+' - '+pc(x)+')"></i>').join('');
+  const bars_ = bars(segs, lo, hi);
   let ax = ''; for(let m = lo; m <= hi; m += step) ax += '<span style="left:'+pc(m)+'">'+(m / 60)+'</span>';
-  return '<div class="tl">'+bars+(now !== null && now >= lo && now <= hi ? '<i class="now" style="left:'+pc(now)+'"></i>' : '')+'</div><div class="tl-ax">'+ax+'</div>'+
+  return '<div class="tl">'+bars_+(now !== null && now >= lo && now <= hi ? '<i class="now" style="left:'+pc(now)+'"></i>' : '')+'</div><div class="tl-ax">'+ax+'</div>'+
     '<div class="legend"><span><b style="background:var(--c-arbeit)"></b>Arbeit</span><span><b style="background:var(--c-pause)"></b>Pause</span><span><b style="background:var(--c-reise)"></b>Reise</span></div>';
 }
 function awayBadge(date, d){
@@ -668,10 +721,13 @@ function awayBadge(date, d){
 const LIVE_ICO = {arbeit_start:'play', pause_start:'pause', pause_ende:'play', arbeit_ende:'stop', reise_start:'car', reise_ende:'pin'};
 function viewHeute(){
   const t = todayStr(), {date} = openDay(), cs = clockState();
-  const btn = liveActions().map(a => '<button class="big'+(a.primary ? ' primary' : '')+'" data-act="live:'+a.a+'">'+ico(LIVE_ICO[a.a])+'<span>'+a.label+'</span></button>');
-  const c = calcWithRest(t), d0 = getDay(t);
+  // Ein großer Hauptknopf, die übrigen Aktionen als schmale Zeile darunter
+  const acts = liveActions(), main = acts.find(a => a.primary) || acts[0], rest = acts.filter(a => a !== main);
+  const btn = '<button class="big primary" data-act="live:'+main.a+'">'+ico(LIVE_ICO[main.a])+'<span>'+main.label+'</span></button>'+
+    (rest.length ? '<div class="acts" style="grid-template-columns:repeat('+rest.length+',minmax(0,1fr))">'+rest.map(a => '<button data-act="live:'+a.a+'">'+ico(LIVE_ICO[a.a])+'<span>'+a.label+'</span></button>').join('')+'</div>' : '');
+  const c = calcWithRest(t), d0 = getDay(t), W = weekStats(mondayOf(t)).S;
   const ort = d0 ? (d0.ortTyp + (d0.ortKuerzel ? ' '+d0.ortKuerzel : '') + (d0.stadt ? ', '+d0.stadt : '')) : '';
-  const tile = (i, l, v) => '<div class="tile"><span>'+ico(i)+l+'</span><b>'+v+'</b></div>';
+  const tile = (i, l, v, sub) => '<div class="tile"><span>'+ico(i)+l+'</span><b>'+v+'</b>'+(sub ? '<small>'+sub+'</small>' : '')+'</div>';
   return banners()+
     '<h1>'+fmtDate(t)+'</h1>'+
     '<div class="card"><div class="hero"><div class="hero-label"><i class="dot'+(cs.live ? ' live' : '')+'" style="background:'+cs.farbe+'"></i>'+esc(cs.label)+'</div>'+
@@ -679,10 +735,11 @@ function viewHeute(){
       (cs.seit ? '<div class="muted small">seit '+esc(cs.seit)+(cs.netto ? ', ohne Pausen' : '')+'</div>' : '')+
       (date !== t ? '<div class="muted small">Offener Eintrag vom '+fmtDate(date)+'</div>' : '')+'</div>'+
       timeline(t, d0)+
-    '<div class="grid2" style="margin-top:12px">'+btn.join('')+'</div>'+
+    '<div style="margin-top:12px">'+btn+'</div>'+
     (date === t ? '<button class="link" data-act="live-custom" style="margin-top:8px">Vergessen zu tippen? Mit anderer Uhrzeit ...</button>' : '')+'</div>'+
     '<div class="card"><h3>'+ico('cal')+' Heute</h3>'+
-      '<div class="tiles">'+tile('briefcase', 'Arbeitszeit', fmtH(c.arbeit))+tile('pause', 'Pausen', fmtH(c.pause))+tile('car', 'Reise aktiv', fmtH(c.aktiv))+tile('clock', 'Reise passiv', fmtH(c.passiv))+'</div>'+
+      '<div class="tiles">'+tile('briefcase', 'Arbeitszeit', fmtH(c.arbeit))+tile('pause', 'Pausen', fmtH(c.pause))+tile('car', 'Reise aktiv', fmtH(c.aktiv))+tile('clock', 'Reise passiv', fmtH(c.passiv))+
+        tile('hist', 'Saldo Woche', fmtS(W.istBis - W.sollBis), 'inkl. aktiver Reise '+fmtS(W.istBis + W.aktiv - W.sollBis))+tile('cal', 'Woche Ist / Soll', fmtH(W.istBis).replace(' h', '')+'<small style="display:inline;font-size:.9rem"> / '+fmtH(W.soll).replace(' h', '')+'</small>','KW '+isoWeek(t)+', Soll bis heute '+fmtH(W.sollBis))+'</div>'+
       (ort ? '<div class="stat" style="margin-top:8px"><span>'+ico(dayIcon(d0))+' Ort</span><b>'+esc(ort)+'</b></div>' : '')+
       awayBadge(t, d0)+
       warnList(c.warnings)+
@@ -741,6 +798,7 @@ async function live(action, customTime){
     if(!v) return;
     t = v.t; reason = v.r; source = 'live-nachtrag';
   }
+  const before = CUR.has('day:'+date) ? getDay(date) : null;
   if(action === 'arbeit_start'){
     if(day.beginn && day.ende){ day.pausen.push({von:day.ende, bis:t, art: span(day.ende, t) > 120 ? 'Unterbrechung' : 'Pause'}); day.ende = ''; }
     else if(!day.beginn) day.beginn = t;
@@ -764,7 +822,14 @@ async function live(action, customTime){
   }
   day.live.push(customTime ? {a:action, at:now.toISOString(), zeit:t} : {a:action, at:now.toISOString()});
   await append('day', date, day, reason, source);
-  toast('Gespeichert: '+t);
+  try{ if(navigator.vibrate) navigator.vibrate(30); } catch(e){}
+  const seq = LOG[LOG.length - 1].seq;
+  // Rücknahme schreibt den alten Stand als neue Version; ein vorher leerer Tag wird wieder leer, nicht storniert
+  toastUndo('Gespeichert: '+t, async () => {
+    if(LOG[LOG.length - 1].seq !== seq){ toast('Nicht mehr möglich, inzwischen wurde weiter erfasst'); return; }
+    await append('day', date, before || newDay(date), 'Fehlklick zurückgenommen', 'live-undo');
+    toast('Zurückgenommen'); render();
+  });
   render();
 }
 
@@ -779,7 +844,10 @@ function wegChips(fav, attr, prefix){ return fav.length ? '<div class="chips">'+
 function fillLeg(m, p, w){ const g = id => m.querySelector('#'+p+'-'+id); g('von').value = w.von; g('nach').value = w.nach; g('mittel').value = w.mittel; g('km').value = w.km || ''; g('selbst').checked = !!w.selbst; }
 function readLeg(m, p){ const g = id => m.querySelector('#'+p+'-'+id); return {von:g('von').value.trim(), nach:g('nach').value.trim(), mittel:g('mittel').value, km:g('km').value.trim(), selbst:g('selbst').checked, gearbeitetMin:g('gmin').value.trim(), gearbeitetWas:g('gwas').value.trim()}; }
 
-function tageSeg(){ const w = ST.tmode === 'woche'; return '<div class="seg"><button data-act="tmode:liste"'+(w ? '' : ' class="on"')+'>Liste</button><button data-act="tmode:woche"'+(w ? ' class="on"' : '')+'>Woche</button></div>'; }
+function tageSeg(){
+  const m = ST.tmode || 'liste';
+  return '<div class="seg">'+[['liste', 'list', 'Liste'], ['woche', 'hist', 'Woche'], ['kal', 'cal', 'Kalender']].map(([k, i, l]) => '<button data-act="tmode:'+k+'"'+(m === k ? ' class="on"' : '')+'>'+ico(i)+' '+l+'</button>').join('')+'</div>';
+}
 function viewWoche(){
   const mon = ST.week || (ST.week = mondayOf(todayStr())), {rows, S} = weekStats(mon), sun = addDays(mon, 6);
   const stat = (l, v) => '<div class="stat"><span>'+l+'</span><b>'+v+'</b></div>';
@@ -802,17 +870,21 @@ function viewWoche(){
 function viewTage(){
   if(ST.tmode === 'woche') return banners()+tageSeg()+viewWoche();
   const ym = ST.month, {rows} = monthStats(ym), today = todayStr();
+  if(ST.tmode === 'kal') return banners()+tageSeg()+monthNav()+'<div class="card">'+calendar(rows)+'</div>';
   const list = rows.filter(r => r.date <= today || r.day).reverse().map(r => {
     const hn = holidayName(r.date, blOf(r.day)), we = weekday(r.date) === 0 || weekday(r.date) === 6;
     if(!r.day){
       return '<div class="day empty" data-act="edit:'+r.date+'"><span class="d">'+fmtDate(r.date)+'</span><span class="muted small">'+(hn ? esc(hn) : we ? 'Wochenende' : 'kein Eintrag')+'</span></div>';
     }
-    const c = r.c, info = r.day.storniert ? 'storniert' : r.day.tagTyp !== 'Arbeit' ? r.day.tagTyp : fmtH(c.arbeit)+(c.aktiv + c.passiv ? ' · Reise '+fmtH(c.aktiv + c.passiv) : '');
-    const nacht = !r.day.storniert && nightAway(r.date, r.day).away ? ' '+ico('moon') : '';
-    return '<div class="day'+(r.day.storniert ? ' storno' : '')+'" data-act="edit:'+r.date+'"><span class="d">'+ico(dayIcon(r.day))+fmtDate(r.date)+nacht+(hn ? '<span class="chip">'+esc(hn)+'</span>' : '')+'</span><span>'+esc(info)+(c.warnings.length ? ' <span class="chip" style="color:var(--warn)">'+c.warnings.length+' Hinweis'+(c.warnings.length > 1 ? 'e' : '')+'</span>' : '')+'</span></div>';
+    const c = r.c, d = r.day, aktiv = !d.storniert && d.tagTyp === 'Arbeit';
+    const info = d.storniert ? 'storniert' : d.tagTyp !== 'Arbeit' ? d.tagTyp : fmtH(c.arbeit)+(c.aktiv + c.passiv ? ' · Reise '+fmtH(c.aktiv + c.passiv) : '');
+    const v = aktiv ? vmaDay(r.date, d) : null, nacht = v && v.nacht && v.nacht.away;
+    const chips = aktiv ? '<span class="chip">'+esc(d.ortKuerzel || d.stadt || d.ortTyp)+'</span>'+(nacht || v.betrag ? '<span class="chip away-chip">'+(nacht ? ico('moon') : '')+(v.betrag ? ico('fork')+' '+eur(v.betrag) : '')+'</span>' : '') : '';
+    return '<div class="day'+(d.storniert ? ' storno' : '')+'" data-act="edit:'+r.date+'"><span class="d">'+ico(dayIcon(d))+fmtDate(r.date)+(hn ? '<span class="chip">'+esc(hn)+'</span>' : '')+'</span><span>'+esc(info)+(c.warnings.length ? ' <span class="chip" style="color:var(--warn)">'+ico('warn')+' '+c.warnings.length+'</span>' : '')+'</span>'+
+      (aktiv ? '<div class="sub">'+miniBar(r.date, d)+'<span class="chips-in">'+chips+'</span></div>' : '')+'</div>';
   }).join('');
   return banners()+tageSeg()+monthNav()+'<div class="card">'+(list || '<p class="muted">Keine Tage.</p>')+'</div>'+
-    '<button data-act="edit-pick">Anderen Tag nachtragen</button>';
+    '<button data-act="edit-pick">'+ico('edit')+' Anderen Tag nachtragen</button>';
 }
 function monthNav(){ return '<div class="row between"><button data-act="month:-1">‹</button><h1 style="margin:0">'+fmtMonth(ST.month)+'</h1><button data-act="month:1">›</button></div><div style="height:10px"></div>'; }
 
@@ -820,39 +892,48 @@ function viewEdit(){
   const date = ST.edit, d = ST.draft, cur = getDay(date), vers = dayVersions(date);
   const sel = (id, opts, v) => '<select id="'+id+'">'+opts.map(o => '<option'+(o === v ? ' selected' : '')+'>'+o+'</option>').join('')+'</select>';
   const bl = '<select id="e-bl"><option value="">wie Homeoffice ('+esc(LAENDER[settings().bundesland] || 'nicht gesetzt')+')</option>'+Object.entries(LAENDER).map(([k,v]) => '<option value="'+k+'"'+(k === d.bundesland ? ' selected' : '')+'>'+v+'</option>').join('')+'</select>';
-  const pausen = d.pausen.map((p,i) => '<div class="row" style="flex-wrap:nowrap;margin-bottom:6px"><input type="time" class="p-von" value="'+esc(p.von)+'"><span>bis</span><input type="time" class="p-bis" value="'+esc(p.bis)+'"><select class="p-art" style="width:auto"><option value="Pause">Pause</option><option value="Unterbrechung"'+(p.art === 'Unterbrechung' ? ' selected' : '')+'>Unterbr.</option></select><button data-act="del-pause:'+i+'" class="danger" aria-label="Pause entfernen">×</button></div>').join('');
+  const pausen = d.pausen.map((p,i) => '<div class="prow"><input type="time" class="p-von" value="'+esc(p.von)+'"><input type="time" class="p-bis" value="'+esc(p.bis)+'"><select class="p-art"><option value="Pause">Pause</option><option value="Unterbrechung"'+(p.art === 'Unterbrechung' ? ' selected' : '')+'>Unterbr.</option></select><button data-act="del-pause:'+i+'" class="danger" aria-label="Pause entfernen">×</button></div>').join('');
   const fav = favorites();
   const ortChips = fav.orte.length ? '<div class="chips">'+fav.orte.map((o,i) => '<button data-act="fav-ort:'+i+'">'+esc(ortLabel(o))+'</button>').join('')+'</div>' : '';
   const vma = vmaDay(date, d), autoNacht = nightAway(date, d, null, true);
   const reisen = d.reisen.map((r,i) => '<fieldset class="leg"><legend>Reise '+(i+1)+'</legend>'+wegChips(fav.wege, 'act', 'fav-weg:'+i+':')+'<div class="grid2"><div><label>Abfahrt</label><input type="time" class="r-ab" value="'+esc(r.ab)+'"></div><div><label>Ankunft</label><input type="time" class="r-an" value="'+esc(r.an)+'"></div></div>'+legFields(r, 'r'+i)+'<button class="danger" data-act="del-reise:'+i+'">Reise entfernen</button></fieldset>').join('');
-  const c = calcWithRest(date);
+  const c = calcWithRest(date), vorlage = lastSameWeekday(date);
+  // Aufklappbare Abschnitte: offen, wenn dort etwas steht
+  const sec = (id, i, title, open, body) => '<details class="card sec" data-sec="'+id+'"'+((ST.secOpen && id in ST.secOpen ? ST.secOpen[id] : open) ? ' open' : '')+'><summary><h3>'+ico(i)+' '+title+'</h3></summary>'+body+'</details>';
+  const hatNotiz = !!(d.anlass || d.belege || d.notiz);
+  const hatAus = !!(vma.pausch || vma.info || autoNacht.away || uebModeOf(d) !== 'auto' || d.fruehstueck || d.mittag || d.abend);
   return '<div class="row between"><button data-act="back">'+ico('back')+' Zurück</button><span class="muted small">'+(vers.length ? vers.length+' Version'+(vers.length > 1 ? 'en' : '') : 'neu')+'</span></div>'+
     '<h1>'+fmtDate(date)+'</h1>'+
     (cur && cur.storniert ? '<div class="bad">Dieser Tag ist storniert.</div>' : '')+
     warnList(c.warnings)+
     datalists()+
-    '<div class="card">'+ortChips+'<div class="grid2"><div><label>Art des Tages</label>'+sel('e-typ', ['Arbeit','Urlaub','Krank','Feiertag','Frei'], d.tagTyp)+'</div><div><label>Ort</label>'+sel('e-ort', ['Homeoffice','Kunde','Büro','Sonstiges'], d.ortTyp)+'</div></div>'+
+    (vorlage ? '<button class="link" data-act="vorlage:'+vorlage+'" style="margin-bottom:8px">'+ico('hist')+' Wie letzter '+WTL[weekday(date)]+' ('+fmtDate(vorlage).slice(3, 9)+'): Ort und Anlass übernehmen</button>' : '')+
+    '<div class="card"><h3>'+ico(dayIcon(d))+' Ort</h3>'+ortChips+'<div class="grid2"><div><label>Art des Tages</label>'+sel('e-typ', ['Arbeit','Urlaub','Krank','Feiertag','Frei'], d.tagTyp)+'</div><div><label>Ort</label>'+sel('e-ort', ['Homeoffice','Kunde','Büro','Sonstiges'], d.ortTyp)+'</div></div>'+
     '<div class="grid2"><div><label>Kunden-Kürzel</label><input id="e-kz" list="dl-kz" value="'+esc(d.ortKuerzel)+'" placeholder="nur Kürzel"></div><div><label>Stadt</label><input id="e-stadt" list="dl-stadt" value="'+esc(d.stadt)+'"></div></div>'+
     '<label>Bundesland des Arbeitsorts (Feiertage)</label>'+bl+'</div>'+
     '<div class="card"><h3>'+ico('briefcase')+' Arbeitszeit</h3><div class="grid2"><div><label>Beginn</label><input type="time" id="e-beginn" value="'+esc(d.beginn)+'"></div><div><label>Ende</label><input type="time" id="e-ende" value="'+esc(d.ende)+'"></div></div>'+
     '<label>Pausen</label>'+pausen+'<button data-act="add-pause" style="margin-top:6px">+ Pause</button>'+
     '<div class="grid2"><div><label>Fakturiert (h)</label><input id="e-fh" inputmode="decimal" value="'+esc(d.faktH)+'"></div><div><label>Projekt-Kürzel</label><input id="e-fk" value="'+esc(d.faktKuerzel)+'"></div></div>'+
     '<div class="grid2"><div><label>Intern (errechnet)</label><div id="e-intern" style="padding:9px 0;font-weight:600">'+fmtH(calc(date, d).intern)+'</div></div><div><label>Art intern</label><input id="e-ia" value="'+esc(d.internArt)+'" placeholder="Schulung, Meeting, Admin"></div></div></div>'+
-    '<div class="card"><h3>'+ico('car')+' Reisezeit</h3><p class="muted small">Reisen hier getrennt erfassen. Liegt eine Reise innerhalb von Beginn und Ende, zieht die App sie automatisch von der Arbeitszeit ab und zählt sie als Reise.</p>'+reisen+'<button data-act="add-reise">+ Reise</button></div>'+
-    '<div class="card"><h3>'+ico('moon')+' Auswärts (Steuer)</h3>'+
+    sec('reise', 'car', 'Reisezeit'+(d.reisen.length ? ' ('+d.reisen.length+')' : ''), d.reisen.length > 0, '<p class="muted small">Reisen hier getrennt erfassen. Liegt eine Reise innerhalb von Beginn und Ende, zieht die App sie automatisch von der Arbeitszeit ab und zählt sie als Reise.</p>'+reisen+'<button data-act="add-reise">+ Reise</button>')+
+    sec('aus', 'moon', 'Auswärts (Steuer)'+(vma.betrag ? ' · '+eur(vma.betrag) : ''), hatAus,
       '<label>Übernachtung auswärts (Nacht nach diesem Tag)</label>'+
       '<select id="e-ueb">'+[['auto', 'Automatisch ('+(autoNacht.away ? 'ja, '+autoNacht.ort : 'nein')+')'], ['ja', 'Ja'], ['nein', 'Nein']].map(([k, l]) => '<option value="'+k+'"'+(uebModeOf(d) === k ? ' selected' : '')+'>'+esc(l)+'</option>').join('')+'</select>'+
       '<details'+(d.fruehstueck || d.mittag || d.abend ? ' open' : '')+'><summary class="muted small">Mahlzeiten gestellt (Ausnahme)</summary>'+
       '<label class="check"><input type="checkbox" id="e-mf"'+(d.fruehstueck ? ' checked' : '')+'>Frühstück</label>'+
       '<label class="check"><input type="checkbox" id="e-mm"'+(d.mittag ? ' checked' : '')+'>Mittagessen</label>'+
       '<label class="check"><input type="checkbox" id="e-ma"'+(d.abend ? ' checked' : '')+'>Abendessen</label></details>'+
-      '<div class="muted small" id="e-vma" style="margin-top:8px">'+vmaText(vma)+'</div></div>'+
-    '<div class="card"><label>Anlass / veranlasst durch</label><textarea id="e-anlass" placeholder="z. B. Kundentermin 8 Uhr vor Ort, Einladung von Projektleitung">'+esc(d.anlass)+'</textarea>'+
+      '<div class="muted small" id="e-vma" style="margin-top:8px">'+vmaText(vma)+'</div>')+
+    sec('notiz', 'edit', 'Anlass, Belege, Notiz', hatNotiz, '<label>Anlass / veranlasst durch</label><textarea id="e-anlass" placeholder="z. B. Kundentermin 8 Uhr vor Ort, Einladung von Projektleitung">'+esc(d.anlass)+'</textarea>'+
     '<label>Belege (wo abgelegt)</label><input id="e-belege" value="'+esc(d.belege)+'" placeholder="z. B. Bahnticket in Drive, Kalendereinladung">'+
-    '<label>Notiz</label><textarea id="e-notiz">'+esc(d.notiz)+'</textarea></div>'+
+    '<label>Notiz</label><textarea id="e-notiz">'+esc(d.notiz)+'</textarea>')+
     '<div class="row"><button class="primary" data-act="save-day">Speichern</button>'+
     (cur ? (cur.storniert ? '<button data-act="restore">Wiederherstellen</button>' : '<button class="danger" data-act="storno">Stornieren</button>') : '')+
     (vers.length ? '<button data-act="versions:'+date+'">Versionen</button>' : '')+'</div>';
+}
+function lastSameWeekday(date){
+  for(let w = 1; w <= 8; w++){ const x = addDays(date, -7 * w), d = getDay(x); if(d && !d.storniert && d.tagTyp === 'Arbeit') return x; }
+  return null;
 }
 function readEdit(){
   const d = ST.draft, v = id => $('#'+id).value.trim();
@@ -924,7 +1005,7 @@ function calendar(rows){
     '<div class="legend" style="margin-top:8px"><span><b style="background:var(--accent-bg)"></b>Arbeit</span><span><b style="background:var(--reise-bg)"></b>auswärts</span><span><b style="background:var(--ok-bg)"></b>Urlaub</span><span><b style="background:var(--bad-bg)"></b>Krank</span><span><b style="background:var(--warn-bg)"></b>Feiertag</span><span>'+ico('moon')+' Übernachtung</span><span>'+ico('fork')+' Pauschale</span></div>';
 }
 function viewMonat(){
-  const {S, rows} = monthStats(ST.month), m = S.ml, cur = ST.month === monthOf(todayStr());
+  const {S} = monthStats(ST.month), m = S.ml, cur = ST.month === monthOf(todayStr());
   const stat = (l, v) => '<div class="stat"><span>'+l+'</span><b>'+v+'</b></div>';
   let ml = '';
   if(m.gehalt === null) ml = '<p class="muted">Gehalt unter Mehr → Einstellungen hinterlegen, dann erscheint hier der Mindestlohn-Check.</p>';
@@ -935,26 +1016,40 @@ function viewMonat(){
       (cur ? '<p class="muted small">Der Monat läuft noch, die Werte steigen bis Monatsende.</p>' : '');
   }
   return banners()+monthNav()+
-    '<div class="card">'+calendar(rows)+'</div>'+
     '<div class="card"><h3>'+ico('clock')+' Stunden</h3>'+stat('Arbeitszeit', fmtH(S.arbeit))+stat('Urlaub/Krank gutgeschrieben', fmtH(S.gutschrift))+stat('Reise aktiv', fmtH(S.aktiv))+stat('Reise passiv', fmtH(S.passiv))+
       stat('Fakturiert / intern', fmtH(S.fakt)+' / '+fmtH(S.intern))+stat('Kilometer', S.km.toLocaleString('de-DE')+' km')+'</div>'+
     '<div class="card"><h3>'+ico('hist')+' Soll und Mehrarbeit</h3>'+stat('Soll ganzer Monat', fmtH(S.soll))+stat('Soll bis heute', fmtH(S.sollBis))+stat('Ist bis heute (Arbeit + Gutschrift)', fmtH(S.istBis))+
       stat('Saldo ohne Reise', fmtH(S.istBis - S.sollBis))+stat('Saldo inkl. aktiver Reise', fmtH(S.istBis + S.aktiv - S.sollBis))+stat('Saldo inkl. aller Reise', fmtH(S.istBis + S.aktiv + S.passiv - S.sollBis))+
       (S.fehl.length ? '<div class="warn">'+S.fehl.length+' Werktag'+(S.fehl.length > 1 ? 'e' : '')+' ohne Eintrag: '+S.fehl.map(d => d.slice(8)+'.').join(', ')+'</div>' : '')+
       (S.warnCount ? '<div class="warn">'+S.warnCount+' Hinweis'+(S.warnCount > 1 ? 'e' : '')+' in diesem Monat, Details unter "Tage".</div>' : '')+'</div>'+
-    '<div class="card"><h3>Mindestlohn-Check</h3>'+ml+'</div>'+
-    '<div class="row"><button data-act="csv">CSV exportieren</button><button data-act="print">Monatsbericht (PDF)</button></div>'+
-    '<div class="row" style="margin-top:8px"><button data-act="range">Bericht für Zeitraum</button><button data-act="steuer">Steuer: Verpflegung '+ST.month.slice(0, 4)+'</button></div>';
+    '<div class="card"><h3>'+ico('briefcase')+' Mindestlohn-Check</h3>'+ml+'</div>'+
+    '<div class="card"><h3>'+ico('fork')+' Steuer und Berichte</h3><div class="row"><button class="primary" data-act="steuer">'+ico('fork')+' Verpflegung '+ST.month.slice(0, 4)+'</button><button data-act="print">Monatsbericht (PDF)</button></div>'+
+    '<div class="row" style="margin-top:8px"><button data-act="range">Bericht für Zeitraum</button><button data-act="csv">CSV exportieren</button></div></div>';
 }
 
 function viewSteuer(){
   const y = ST.year, V = vmaYear(y), stat = (l, v) => '<div class="stat"><span>'+l+'</span><b>'+v+'</b></div>';
-  const tr = V.rows.map(r => '<tr data-act="edit:'+r.date+'"><td>'+fmtDate(r.date).slice(0, 9)+'</td><td>'+esc(r.v.hinweis ? 'entfällt' : r.v.art)+(r.d.ortKuerzel ? ' · '+esc(r.d.ortKuerzel) : '')+'</td><td class="n">'+eur(r.v.betrag)+'</td></tr>').join('');
-  return '<div class="row"><button data-act="nav:monat">‹ Monat</button></div>'+
+  // Tage zu Reisen bündeln: Ein Tag gehört zur Reise davor, wenn er direkt folgt und die Nacht dazwischen auswärts war
+  const trips = [];
+  for(const r of V.rows){
+    const last = trips.length ? trips[trips.length - 1] : null, prev = last && last.rows[last.rows.length - 1];
+    if(prev && prev.date === addDays(r.date, -1) && prev.v.nacht && prev.v.nacht.away) last.rows.push(r);
+    else trips.push({rows:[r]});
+  }
+  const kurz = s => s.slice(8)+'.'+s.slice(5, 7)+'.';
+  const tr = trips.reverse().map(g => {
+    const a = g.rows[0].date, b = g.rows[g.rows.length - 1].date, sum = g.rows.reduce((s, r) => s + r.v.betrag, 0);
+    const orte = new Map(); for(const r of g.rows){ const o = r.d.ortKuerzel || r.d.stadt; if(o) orte.set(o, (orte.get(o) || 0) + 1); }
+    const ort = [...orte.entries()].sort((x, y) => y[1] - x[1]).map(x => x[0]).slice(0, 2).join(', ');
+    const tage = g.rows.map(r => '<tr data-act="edit:'+r.date+'"><td>'+fmtDate(r.date).slice(0, 9)+'</td><td>'+esc(r.v.hinweis ? 'entfällt' : r.v.art)+'</td><td class="n">'+eur(r.v.betrag)+'</td></tr>').join('');
+    return '<details class="trip"><summary><span>'+ico(g.rows.length > 1 ? 'moon' : 'car')+' <b>'+(a === b ? kurz(a) : kurz(a).slice(0, 3)+(a.slice(5, 7) === b.slice(5, 7) ? '' : a.slice(5, 7)+'.')+'-'+kurz(b))+'</b> '+esc(ort)+'</span><b>'+eur(sum)+'</b></summary>'+
+      '<table class="t">'+tage+'</table></details>';
+  }).join('');
+  return '<div class="row"><button data-act="nav:monat">'+ico('back')+' Auswertung</button></div>'+
     '<div class="row between"><button data-act="year:-1">‹</button><h1 style="margin:0">Verpflegung '+y+'</h1><button data-act="year:1">›</button></div><div style="height:10px"></div>'+
     '<div class="card"><h3>'+ico('fork')+' Verpflegungsmehraufwand</h3>'+stat('Tage mit Anspruch', V.rows.filter(r => r.v.betrag > 0).length)+stat('Pauschalen', eur(V.pausch))+stat('Kürzung gestellte Mahlzeiten', '- '+eur(V.kuerz))+stat('Absetzbar (Werbungskosten)', eur(V.betrag))+
       '<p class="muted small">Fahrtkosten (Tickets, 0,30 €/km) und Hotel erstattet der Arbeitgeber, daher hier nicht absetzbar. Gefahrene km '+y+' zur Info: '+V.km.toLocaleString('de-DE')+' km. Pauschalen: '+eur(num(settings().vmaKlein))+' / '+eur(num(settings().vmaGross))+' (unter Mehr änderbar). Orientierung, keine Steuerberatung.</p></div>'+
-    '<div class="card">'+(tr ? '<table class="t"><thead><tr><th>Tag</th><th>Art</th><th class="n">Betrag</th></tr></thead><tbody>'+tr+'</tbody></table>' : '<p class="muted">Noch keine Tage mit Reise über 8 h oder Übernachtung.</p>')+'</div>'+
+    '<div class="card"><h3>'+ico('list')+' Reisen ('+trips.length+')</h3>'+(tr || '<p class="muted">Noch keine Tage mit Reise über 8 h oder Übernachtung.</p>')+'</div>'+
     '<button data-act="steuer-csv">CSV für die Steuererklärung</button>';
 }
 function csvVma(y){
@@ -1003,8 +1098,10 @@ function viewMehr(){
     ? '<p class="small">Client-ID hinterlegt. '+(META.lastDrive ? 'Letzter Upload: '+fmtDT(META.lastDrive.at)+' ('+esc(META.lastDrive.name)+')' : 'Noch kein Upload.')+'</p>'+
       '<div class="row"><button class="primary" data-act="drive-upload">'+(META.driveConnected ? 'Jetzt hochladen' : 'Mit Google Drive verbinden')+'</button>'+(META.driveConnected ? '<button class="danger" data-act="drive-disconnect">Trennen</button>' : '')+'<button data-act="drive-reset">Client-ID ändern</button></div>'
     : '<label>OAuth-Client-ID (aus Deinem Google-Cloud-Projekt)</label><input id="d-cid" placeholder="....apps.googleusercontent.com"><button style="margin-top:8px" data-act="drive-save-id">Speichern</button>';
+  const op = (id, def) => ((ST.secOpen && id in ST.secOpen) ? ST.secOpen[id] : def) ? ' open' : '';
+  const head = (id, i, t, def) => '<details class="card sec" data-sec="'+id+'"'+op(id, def)+'><summary><h3>'+ico(i)+' '+t+'</h3></summary>';
   return banners()+'<h1>Mehr</h1>'+
-    '<div class="card"><h3>Einstellungen</h3>'+
+    head('m-einst', 'edit', 'Einstellungen', !s.wohnort || !s.bundesland)+
       '<label>Name (für den Monatsbericht)</label><input id="s-name" value="'+esc(s.name)+'">'+
       '<label>Aufzeichnung ab (vorher zählt kein Soll)</label><input type="date" id="s-start" value="'+esc(s.start)+'">'+
       '<label>Bundesland Homeoffice</label><select id="s-bl"><option value="">bitte wählen</option>'+Object.entries(LAENDER).map(([k,n]) => '<option value="'+k+'"'+(k === s.bundesland ? ' selected' : '')+'>'+n+'</option>').join('')+'</select>'+
@@ -1014,15 +1111,15 @@ function viewMehr(){
       '<label>Gehalt brutto, gültig ab Monat</label>'+gehalt+'<button data-act="add-gehalt" style="margin-top:6px">+ Gehaltsstufe</button>'+
       '<label>Mindestlohn je Stunde, gültig ab Jahr</label>'+mls+'<button data-act="add-ml" style="margin-top:6px">+ Jahr</button>'+
       '<div class="grid2"><div><label>Verpflegung über 8 h / An- und Abreise (€)</label><input id="s-vk" inputmode="decimal" value="'+esc(s.vmaKlein)+'"></div><div><label>Verpflegung 24 h (€)</label><input id="s-vg" inputmode="decimal" value="'+esc(s.vmaGross)+'"></div></div>'+
-      '<div class="row" style="margin-top:12px"><button class="primary" data-act="save-settings">Einstellungen speichern</button></div></div>'+
-    '<div class="card"><h3>Backup</h3><p class="small muted">Die Daten liegen nur in diesem Browser. Regelmäßig sichern, z. B. in Dein privates Google Drive.</p>'+
+      '<div class="row" style="margin-top:12px"><button class="primary" data-act="save-settings">Einstellungen speichern</button></div></details>'+
+    head('m-backup', 'hist', 'Backup', false)+'<p class="small muted">Die Daten liegen nur in diesem Browser. Regelmäßig sichern, z. B. in Dein privates Google Drive.</p>'+
       '<div class="row"><button class="primary" data-act="share-backup">Backup teilen</button><button data-act="dl-backup">Herunterladen</button><button data-act="import">Importieren</button></div>'+
       '<p class="small muted">'+(META.lastBackup ? 'Letztes Backup: '+fmtDT(META.lastBackup) : 'Noch kein Backup.')+'</p>'+
-      '<input type="file" id="imp" accept="application/json,.json" style="display:none"></div>'+
-    '<div class="card"><h3>Automatisches Drive-Backup</h3><p class="small muted">Nach jeder Änderung wird eine Tagesdatei in Deinem Drive-Ordner "Zeitnachweis Backups" aktualisiert, solange die App offen ist. Die App sieht nur ihre eigenen Dateien.</p>'+drive+'</div>'+
-    '<div class="card"><h3>Prüfung</h3>'+(v.ok ? '<div class="good">Hashkette intakt: '+v.n+' Einträge.</div><div class="mono">Kopf-Hash: '+v.head+'</div>' : '<div class="bad">'+esc(v.why)+'</div>')+
-      '<p class="small muted" id="persist"></p></div>'+
-    '<div class="card"><h3>Hilfe</h3>'+HILFE+'</div>';
+      '<input type="file" id="imp" accept="application/json,.json" style="display:none"></details>'+
+    head('m-drive', 'hist', 'Automatisches Drive-Backup', false)+'<p class="small muted">Nach jeder Änderung wird eine Tagesdatei in Deinem Drive-Ordner "Zeitnachweis Backups" aktualisiert, solange die App offen ist. Die App sieht nur ihre eigenen Dateien.</p>'+drive+'</details>'+
+    head('m-pruef', 'star', 'Prüfung'+(v.ok ? ' (intakt)' : ' (FEHLER)'), !v.ok)+(v.ok ? '<div class="good">Hashkette intakt: '+v.n+' Einträge.</div><div class="mono">Kopf-Hash: '+v.head+'</div>' : '<div class="bad">'+esc(v.why)+'</div>')+
+      '<p class="small muted" id="persist"></p></details>'+
+    head('m-hilfe', 'list', 'Hilfe', false)+HILFE+'</details>';
 }
 const HILFE = '<p class="small"><b>Täglich, am besten noch am selben Abend:</b> Ort (Homeoffice, Kunde als Kürzel, Büro, mit Stadt), Beginn, Ende, Pausen, fakturierte Stunden (intern errechnet die App als Rest der Arbeitszeit), Reisen getrennt mit Abfahrt, Ankunft, Verkehrsmittel, ob selbst gefahren und ob unterwegs gearbeitet wurde, Kilometer. Dazu den Anlass: wer hat die Reise oder Mehrarbeit veranlasst?</p>'+
   '<p class="small"><b>Belege sammeln:</b> Tickets und Buchungen, Hotelrechnungen, Kalendereinladungen und Mails mit Vor-Ort-Terminen, Kopien der Spesenabrechnungen, monatlich ein Export oder Screenshot der offiziellen Zeiterfassung. Hier nur notieren, wo der Beleg liegt.</p>'+
@@ -1206,13 +1303,15 @@ function render(){
     const el = $('#e-intern'); if(el) el.textContent = fmtH(calc(ST.edit, ST.draft).intern);
     const vm = $('#e-vma'); if(vm) vm.innerHTML = vmaText(vmaDay(ST.edit, ST.draft));
   };
+  // Auf- und Zuklappen merken, damit ein Neuzeichnen (z. B. + Pause) den Zustand nicht zurücksetzt
+  app.querySelectorAll('details[data-sec]').forEach(x => x.ontoggle = () => { (ST.secOpen = ST.secOpen || {})[x.dataset.sec] = x.open; });
   if(ST.view === 'mehr'){
     const p = $('#persist');
     if(p && navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(x => { p.textContent = x ? 'Speicher ist als dauerhaft markiert, der Browser löscht ihn nicht automatisch.' : 'Speicher ist nicht als dauerhaft markiert. App zum Startbildschirm hinzufügen und regelmäßig Backups machen.'; });
     const imp = $('#imp'); if(imp) imp.onchange = () => { if(imp.files[0]) importBackup(imp.files[0]).catch(e => toast('Import fehlgeschlagen: '+e.message)); imp.value = ''; };
   }
 }
-function startEdit(date){ ST.edit = date; ST.draft = getDay(date) || newDay(date); ST.view = 'edit'; render(); window.scrollTo(0, 0); }
+function startEdit(date){ ST.edit = date; ST.draft = getDay(date) || newDay(date); ST.secOpen = {}; ST.view = 'edit'; render(); window.scrollTo(0, 0); }
 
 document.addEventListener('click', async ev => {
   const el = ev.target.closest('[data-act]'); if(!el) return;
@@ -1237,6 +1336,12 @@ document.addEventListener('click', async ev => {
       case 'fav-ort': readEdit(); Object.assign(ST.draft, favorites().orte[+arg]); render(); break;
       case 'fav-weg': { readEdit(); const [li, fi] = arg.split(':').map(Number); const w = favorites().wege[fi]; Object.assign(ST.draft.reisen[li], {von:w.von, nach:w.nach, mittel:w.mittel, selbst:w.selbst, km:w.km}); render(); break; }
       case 'live-custom': await liveCustom(); break;
+      case 'vorlage': {
+        // Nur Ort und Kontext übernehmen, Uhrzeiten bleiben echte Erfassung
+        readEdit(); const v = getDay(arg);
+        for(const k of ['ortTyp','ortKuerzel','stadt','bundesland','faktKuerzel','internArt','anlass']) ST.draft[k] = v[k];
+        render(); toast('Ort und Anlass übernommen, Zeiten bitte selbst erfassen'); break;
+      }
       case 'tmode': ST.tmode = arg; render(); break;
       case 'week': ST.week = addDays(ST.week || mondayOf(todayStr()), 7 * +arg); render(); break;
       case 'steuer': ST.year = ST.year || ST.month.slice(0, 4); ST.view = 'steuer'; render(); window.scrollTo(0, 0); break;

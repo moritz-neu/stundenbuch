@@ -1,7 +1,8 @@
 ZEITNACHWEIS - private Arbeits- und Reisezeit-App
 ==================================================
 
-Die App besteht aus vier Dateien: index.html, manifest.webmanifest, sw.js, icon.svg.
+Die App besteht aus sieben Dateien: index.html, manifest.webmanifest, sw.js, icon.svg,
+icon-192.png, icon-512.png, icon-maskable-512.png.
 Sie enthalten keine persönlichen Daten. Die Daten entstehen erst auf dem Handy
 und bleiben dort im Browser (plus Backups in Deinem privaten Google Drive).
 
@@ -14,7 +15,7 @@ Weg A: GitHub Pages
   1. Auf github.com mit einem privaten Konto anmelden (bei Bedarf neu anlegen).
   2. Neues Repository anlegen, Name z. B. "zeitnachweis", Sichtbarkeit "Public"
      (Pages ist im Gratis-Konto nur für öffentliche Repos verfügbar; im Code stehen keine Daten).
-  3. "Add file" -> "Upload files" -> die vier Dateien hochladen -> "Commit changes".
+  3. "Add file" -> "Upload files" -> alle sieben Dateien hochladen -> "Commit changes".
   4. Settings -> Pages -> Source "Deploy from a branch", Branch "main", Ordner "/ (root)" -> Save.
   5. Nach 1-2 Minuten läuft die App unter  https://<dein-github-name>.github.io/zeitnachweis/
 
