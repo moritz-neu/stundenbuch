@@ -75,6 +75,20 @@ Updates: geänderte Dateien einfach erneut hochladen. Die Daten auf dem Handy bl
   - Vergangene Tage ändern geht, verlangt aber einen Grund. Alte Versionen bleiben sichtbar.
 
 
+4a. AUSWÄRTS UND VERPFLEGUNGSPAUSCHALEN
+---------------------------------------
+  - Einmalig: Mehr -> Einstellungen -> Wohnort eintragen. "Erste Tätigkeitsstätte" leer lassen,
+    solange der Arbeitgeber Dich keinem Büro fest zugeordnet hat.
+  - Täglich die Stadt eintragen (Ort Büro/Kunde/Sonstiges). Eine Stadt ungleich Wohnort = auswärts.
+  - Übernachtung erkennt die App selbst: Endet der Tag nicht zu Hause (letzte Reise endet woanders
+    oder es gibt keine Rückreise), zählt die Nacht als auswärts. Im Tageseditor lässt sich das mit
+    "Ja" oder "Nein" überschreiben.
+  - Pauschalen: An- und Abreisetag 14 €, Zwischentag 28 €, eintägig über 8 h Abwesenheit 14 €.
+  - 3-Monats-Frist: gilt je Ort (Kürzel oder Stadt) und beginnt erst ab einer Woche mit mindestens
+    3 Tagen dort. 4 Wochen Pause starten sie neu.
+  - Wochenende auswärts: Tage ohne Eintrag zählen nicht. Die App weist darauf hin, dann nachtragen.
+
+
 5. MONATLICH
 ------------
   - Monat -> "Monatsbericht (PDF)" -> Drucken -> "Als PDF speichern" -> in Drive ablegen.
