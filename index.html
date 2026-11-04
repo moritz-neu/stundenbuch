@@ -303,7 +303,8 @@ function calc(date, day){
     if(wStart !== null) overlap += Math.max(0, Math.min(en, wEnd) - Math.max(s, wStart));
   }
   if(wStart !== null) res.arbeit = Math.max(0, (wEnd - wStart) - res.pause - overlap);
-  res.fakt = num(day.faktH) * 60; res.intern = num(day.internH) * 60;
+  // Intern ist der Rest der Arbeitszeit nach Abzug der fakturierten Stunden
+  res.fakt = num(day.faktH) * 60; res.intern = Math.max(0, res.arbeit - res.fakt);
   if(ivs.length){ res.first = Math.min(...ivs.map(i => i[0])); res.last = Math.max(...ivs.map(i => i[1])); }
   const arbzg = res.arbeit + res.aktiv;
   res.arbzg = arbzg;
@@ -315,7 +316,7 @@ function calc(date, day){
   if(tatig && hn) res.warnings.push('Tätigkeit am Feiertag '+hn+' ('+(LAENDER[blOf(day)] || 'Bundesland fehlt')+').');
   else if(tatig && weekday(date) === 0) res.warnings.push('Tätigkeit an einem Sonntag.');
   if(res.open && date < todayStr()) res.warnings.push('Offener Eintrag: Arbeit, Pause oder Reise ohne Ende.');
-  if((res.fakt + res.intern) > 0 && Math.abs((res.fakt + res.intern) - res.arbeit) > 15 && res.arbeit > 0) res.warnings.push('Fakturiert + intern ('+fmtH(res.fakt + res.intern)+') weicht von der Arbeitszeit ('+fmtH(res.arbeit)+') ab.');
+  if(res.fakt > res.arbeit && !res.vorlaeufig) res.warnings.push('Fakturiert ('+fmtH(res.fakt)+') ist mehr als die Arbeitszeit ('+fmtH(res.arbeit)+'). Bitte prüfen.');
   return res;
 }
 function calcWithRest(date){
@@ -499,7 +500,7 @@ function viewEdit(){
     '<div class="card"><h3>Arbeitszeit</h3><div class="grid2"><div><label>Beginn</label><input type="time" id="e-beginn" value="'+esc(d.beginn)+'"></div><div><label>Ende</label><input type="time" id="e-ende" value="'+esc(d.ende)+'"></div></div>'+
     '<label>Pausen</label>'+pausen+'<button data-act="add-pause" style="margin-top:6px">+ Pause</button>'+
     '<div class="grid2"><div><label>Fakturiert (h)</label><input id="e-fh" inputmode="decimal" value="'+esc(d.faktH)+'"></div><div><label>Projekt-Kürzel</label><input id="e-fk" value="'+esc(d.faktKuerzel)+'"></div></div>'+
-    '<div class="grid2"><div><label>Intern (h)</label><input id="e-ih" inputmode="decimal" value="'+esc(d.internH)+'"></div><div><label>Art intern</label><input id="e-ia" value="'+esc(d.internArt)+'" placeholder="Schulung, Meeting, Admin"></div></div></div>'+
+    '<div class="grid2"><div><label>Intern (errechnet)</label><div id="e-intern" style="padding:9px 0;font-weight:600">'+fmtH(calc(date, d).intern)+'</div></div><div><label>Art intern</label><input id="e-ia" value="'+esc(d.internArt)+'" placeholder="Schulung, Meeting, Admin"></div></div></div>'+
     '<div class="card"><h3>Reisezeit</h3><p class="muted small">Reisen hier getrennt erfassen. Liegt eine Reise innerhalb von Beginn und Ende, zieht die App sie automatisch von der Arbeitszeit ab und zählt sie als Reise.</p>'+reisen+'<button data-act="add-reise">+ Reise</button></div>'+
     '<div class="card"><label>Anlass / veranlasst durch</label><textarea id="e-anlass" placeholder="z. B. Kundentermin 8 Uhr vor Ort, Einladung von Projektleitung">'+esc(d.anlass)+'</textarea>'+
     '<label>Belege (wo abgelegt)</label><input id="e-belege" value="'+esc(d.belege)+'" placeholder="z. B. Bahnticket in Drive, Kalendereinladung">'+
@@ -515,7 +516,7 @@ function readEdit(){
   const pv = [...document.querySelectorAll('.p-von')], pb = [...document.querySelectorAll('.p-bis')], pa = [...document.querySelectorAll('.p-art')];
   d.pausen = pv.map((x,i) => ({von:x.value, bis:pb[i].value, art:pa[i].value}));
   d.reisen = [...document.querySelectorAll('fieldset.leg')].map((f,i) => Object.assign(readLeg(f, 'r'+i), {ab:f.querySelector('.r-ab').value, an:f.querySelector('.r-an').value}));
-  d.faktH = v('e-fh'); d.faktKuerzel = v('e-fk'); d.internH = v('e-ih'); d.internArt = v('e-ia');
+  d.faktH = v('e-fh'); d.faktKuerzel = v('e-fk'); d.internArt = v('e-ia');
   d.anlass = v('e-anlass'); d.belege = v('e-belege'); d.notiz = v('e-notiz');
 }
 async function saveDay(){
@@ -597,7 +598,7 @@ function viewMehr(){
       '<p class="small muted" id="persist"></p></div>'+
     '<div class="card"><h3>Hilfe</h3>'+HILFE+'</div>';
 }
-const HILFE = '<p class="small"><b>Täglich, am besten noch am selben Abend:</b> Ort (Homeoffice, Kunde als Kürzel, Büro, mit Stadt), Beginn, Ende, Pausen, Aufteilung fakturiert/intern, Reisen getrennt mit Abfahrt, Ankunft, Verkehrsmittel, ob selbst gefahren und ob unterwegs gearbeitet wurde, Kilometer. Dazu den Anlass: wer hat die Reise oder Mehrarbeit veranlasst?</p>'+
+const HILFE = '<p class="small"><b>Täglich, am besten noch am selben Abend:</b> Ort (Homeoffice, Kunde als Kürzel, Büro, mit Stadt), Beginn, Ende, Pausen, fakturierte Stunden (intern errechnet die App als Rest der Arbeitszeit), Reisen getrennt mit Abfahrt, Ankunft, Verkehrsmittel, ob selbst gefahren und ob unterwegs gearbeitet wurde, Kilometer. Dazu den Anlass: wer hat die Reise oder Mehrarbeit veranlasst?</p>'+
   '<p class="small"><b>Belege sammeln:</b> Tickets und Buchungen, Hotelrechnungen, Kalendereinladungen und Mails mit Vor-Ort-Terminen, Kopien der Spesenabrechnungen, monatlich ein Export oder Screenshot der offiziellen Zeiterfassung. Hier nur notieren, wo der Beleg liegt.</p>'+
   '<p class="small"><b>Nur eigene Daten:</b> Zeiten, Orte, Anlass. Keine Kundendokumente oder vertraulichen Details, Kürzel genügen. Nur auf privaten Geräten und Konten speichern.</p>'+
   '<p class="small"><b>Tagesarten:</b> "Frei" ist ein freier Werktag, z. B. Überstundenabbau, und mindert den Saldo. "Feiertag" setzt das Soll auf 0. Bei Pausen bedeutet "Unterbr." eine längere Unterbrechung (z. B. geteilter Dienst): Sie wird von der Arbeitszeit abgezogen, zählt aber nicht als Ruhepause.</p>'+
@@ -762,6 +763,8 @@ function render(){
   const v = {heute:viewHeute, tage:viewTage, monat:viewMonat, mehr:viewMehr, edit:viewEdit, versions:viewVersions}[ST.view];
   app.innerHTML = v();
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.act === 'nav:'+(ST.view === 'edit' || ST.view === 'versions' ? 'tage' : ST.view)));
+  // Im Tageseditor die errechnete interne Zeit beim Tippen mitführen
+  app.oninput = app.onchange = ST.view !== 'edit' ? null : () => { readEdit(); const el = $('#e-intern'); if(el) el.textContent = fmtH(calc(ST.edit, ST.draft).intern); };
   if(ST.view === 'mehr'){
     const p = $('#persist');
     if(p && navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(x => { p.textContent = x ? 'Speicher ist als dauerhaft markiert, der Browser löscht ihn nicht automatisch.' : 'Speicher ist nicht als dauerhaft markiert. App zum Startbildschirm hinzufügen und regelmäßig Backups machen.'; });
