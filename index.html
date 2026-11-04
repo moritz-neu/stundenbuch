@@ -65,6 +65,17 @@ legend{font-size:.85rem;color:var(--muted);padding:0 4px}
 .day .d{font-weight:600}
 .day.empty .d{color:var(--muted);font-weight:400}
 .day.storno .d{text-decoration:line-through;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chips button{padding:5px 11px;border-radius:999px;font-size:.85rem}
+.chips button.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.seg{display:flex;gap:0;margin-bottom:10px}
+.seg button{flex:1;border-radius:0}
+.seg button:first-child{border-radius:10px 0 0 10px}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+table.t{width:100%;border-collapse:collapse;font-size:.85rem}
+table.t td,table.t th{padding:5px 3px;border-bottom:1px solid var(--line);text-align:left}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .chip{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 9px;font-size:.8rem;margin-left:4px}
 .status{font-size:1.1rem;font-weight:600;margin-bottom:6px}
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
@@ -236,7 +247,7 @@ function verifyChain(log){
 }
 
 /* ========== Einstellungen ========== */
-const DEFAULT_SETTINGS = {name:'', start:'', bundesland:'', wochensoll:40, gehalt:[], mindestlohn:[{jahr:2026, betrag:13.90},{jahr:2027, betrag:14.60}]};
+const DEFAULT_SETTINGS = {name:'', start:'', bundesland:'', wochensoll:40, gehalt:[], mindestlohn:[{jahr:2026, betrag:13.90},{jahr:2027, betrag:14.60}], vmaKlein:14, vmaGross:28};
 function settings(){ const r = CUR.get('settings:settings'); return Object.assign(clone(DEFAULT_SETTINGS), r ? r.data : {}); }
 function gehaltFor(ym){
   const g = settings().gehalt.filter(x => x.ab && x.ab <= ym).sort((a,b) => a.ab < b.ab ? -1 : 1).pop();
@@ -246,7 +257,7 @@ function gehaltFor(ym){
 function mindestlohnFor(y){ const m = settings().mindestlohn.filter(x => +x.jahr <= +y).sort((a,b) => a.jahr - b.jahr).pop(); return m ? num(m.betrag) : null; }
 
 /* ========== Tage ========== */
-function newDay(date){ return {datum:date, tagTyp:'Arbeit', ortTyp:'Homeoffice', ortKuerzel:'', stadt:'', bundesland:'', beginn:'', ende:'', pausen:[], faktH:'', faktKuerzel:'', internH:'', internArt:'', anlass:'', belege:'', notiz:'', reisen:[], live:[], storniert:false}; }
+function newDay(date){ return {datum:date, tagTyp:'Arbeit', ortTyp:'Homeoffice', ortKuerzel:'', stadt:'', bundesland:'', beginn:'', ende:'', pausen:[], faktH:'', faktKuerzel:'', internH:'', internArt:'', anlass:'', belege:'', notiz:'', reisen:[], live:[], storniert:false, uebernachtung:false, fruehstueck:false, mittag:false, abend:false}; }
 function getDay(date){
   const r = CUR.get('day:'+date); if(!r) return null;
   const d = Object.assign(newDay(date), clone(r.data));
@@ -350,6 +361,122 @@ function monthStats(ym){
   return {rows, S};
 }
 
+/* ========== Woche ========== */
+function mondayOf(s){ return addDays(s, -((weekday(s) + 6) % 7)); }
+function isoWeek(s){ const th = addDays(mondayOf(s), 3), y = th.slice(0, 4); return 1 + Math.floor((dayNum(th) - dayNum(mondayOf(y+'-01-04'))) / 7); }
+function weekStats(mon){
+  const today = todayStr(), rows = [];
+  const S = {arbeit:0, aktiv:0, passiv:0, km:0, fakt:0, intern:0, gutschrift:0, pause:0, soll:0, sollBis:0, istBis:0, warnCount:0};
+  for(let i = 0; i < 7; i++){
+    const date = addDays(mon, i), day = getDay(date), c = calcWithRest(date), soll = sollMin(date, day);
+    rows.push({date, day, c, soll});
+    S.soll += soll;
+    if(date <= today){ S.sollBis += soll; S.istBis += c.arbeit + c.gutschrift; }
+    for(const k of ['arbeit','aktiv','passiv','km','fakt','intern','gutschrift','pause']) S[k] += c[k];
+    S.warnCount += c.warnings.length;
+  }
+  return {rows, S};
+}
+
+/* ========== Steuer: Verpflegungsmehraufwand ========== */
+function addMonthsDate(s, n){ const [y,m,d] = s.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); return t.getUTCFullYear()+'-'+pad(t.getUTCMonth()+1)+'-'+pad(Math.min(d, new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+1, 0)).getUTCDate())); }
+function kundenStreakStart(kz, date){
+  // Beginn der laufenden Einsatzserie beim selben Kunden; ab 4 Wochen Pause beginnt sie neu
+  const dates = [];
+  for(const r of CUR.values()) if(r.entity === 'day' && r.key <= date && !r.data.storniert && r.data.ortTyp === 'Kunde' && r.data.ortKuerzel === kz) dates.push(r.key);
+  dates.sort();
+  let start = dates[0] || date;
+  for(let i = 1; i < dates.length; i++) if(dayNum(dates[i]) - dayNum(dates[i-1]) > 28) start = dates[i];
+  return start;
+}
+function vmaDay(date, override){
+  const s = settings(), d = override || getDay(date), res = {betrag:0, pausch:0, kuerz:0, art:'', abw:null, hinweis:''};
+  if(!d || d.storniert || d.tagTyp !== 'Arbeit') return res;
+  const prev = getDay(addDays(date, -1)), prevNight = !!(prev && !prev.storniert && prev.uebernachtung), thisNight = !!d.uebernachtung;
+  const legs = d.reisen.filter(r => toMin(r.ab) !== null && toMin(r.an) !== null);
+  if(legs.length){
+    const first = Math.min(...legs.map(r => toMin(r.ab))), last = Math.max(...legs.map(r => toMin(r.ab) + span(r.ab, r.an)));
+    res.abw = last - first;
+  }
+  const klein = num(s.vmaKlein), gross = num(s.vmaGross);
+  if(prevNight && thisNight){ res.pausch = gross; res.art = 'Zwischentag'; }
+  else if(thisNight){ res.pausch = klein; res.art = 'Anreisetag'; }
+  else if(prevNight){ res.pausch = klein; res.art = 'Abreisetag'; }
+  else if(res.abw !== null && res.abw > 480){ res.pausch = klein; res.art = 'eintägig über 8 h'; }
+  if(res.pausch && d.ortTyp === 'Kunde' && d.ortKuerzel){
+    const st = kundenStreakStart(d.ortKuerzel, date);
+    if(date >= addMonthsDate(st, 3)){ res.hinweis = 'Seit '+fmtDate(st)+' beim selben Kunden ('+d.ortKuerzel+'): nach 3 Monaten keine Pauschale mehr.'; res.pausch = 0; }
+  }
+  if(res.pausch){
+    res.kuerz = (d.fruehstueck ? 0.2 * gross : 0) + (d.mittag ? 0.4 * gross : 0) + (d.abend ? 0.4 * gross : 0);
+    res.betrag = Math.max(0, res.pausch - res.kuerz);
+  }
+  return res;
+}
+function vmaYear(y){
+  const rows = []; let pausch = 0, kuerz = 0, betrag = 0, km = 0;
+  for(let n = dayNum(y+'-01-01'); n <= dayNum(y+'-12-31'); n++){
+    const date = fromNum(n), d = getDay(date); if(!d || d.storniert) continue;
+    const v = vmaDay(date, d); km += calc(date, d).km;
+    if(v.pausch || v.hinweis || v.kuerz){ rows.push({date, d, v}); pausch += v.pausch; kuerz += Math.min(v.kuerz, v.pausch); betrag += v.betrag; }
+  }
+  return {rows, pausch, kuerz, betrag, km};
+}
+
+/* ========== Favoriten aus der Historie ========== */
+function favorites(){
+  const since = addDays(todayStr(), -90), orte = new Map(), wege = new Map();
+  const bump = (map, key, val, date) => { const e = map.get(key) || {n:0, last:'', val}; e.n++; if(date > e.last) e.last = date; map.set(key, e); };
+  for(const r of CUR.values()){
+    if(r.entity !== 'day' || r.key < since || r.data.storniert) continue;
+    const d = r.data;
+    if(d.ortTyp !== 'Homeoffice' || d.ortKuerzel || d.stadt) bump(orte, [d.ortTyp, d.ortKuerzel, d.stadt, d.bundesland].join('|'), {ortTyp:d.ortTyp, ortKuerzel:d.ortKuerzel, stadt:d.stadt, bundesland:d.bundesland}, r.key);
+    for(const w of d.reisen || []) if(w.von && w.nach) bump(wege, [w.von, w.nach, w.mittel, w.selbst, w.km].join('|'), {von:w.von, nach:w.nach, mittel:w.mittel, selbst:!!w.selbst, km:w.km}, r.key);
+  }
+  const top = map => [...map.values()].sort((a,b) => b.n - a.n || (a.last < b.last ? 1 : -1)).slice(0, 5).map(e => e.val);
+  const ws = top(wege);
+  // Rückweg ergänzen, wenn er noch nicht in der Liste steht
+  for(const w of ws.slice()) if(ws.length < 6 && !ws.some(x => x.von === w.nach && x.nach === w.von)) ws.push(Object.assign({}, w, {von:w.nach, nach:w.von}));
+  return {orte:top(orte), wege:ws};
+}
+function ortLabel(o){ return [o.ortTyp === 'Kunde' ? o.ortKuerzel || 'Kunde' : o.ortTyp, o.stadt].filter(Boolean).join(', '); }
+function wegLabel(w){ return w.von+' → '+w.nach+' ('+w.mittel+(w.km ? ', '+w.km+' km' : '')+')'; }
+function datalists(){
+  const kz = new Set(), st = new Set(), ort = new Set();
+  for(const r of CUR.values()){
+    if(r.entity !== 'day') continue;
+    if(r.data.ortKuerzel) kz.add(r.data.ortKuerzel); if(r.data.stadt) st.add(r.data.stadt);
+    for(const w of r.data.reisen || []){ if(w.von) ort.add(w.von); if(w.nach) ort.add(w.nach); }
+  }
+  const dl = (id, set) => '<datalist id="'+id+'">'+[...set].sort().map(x => '<option value="'+esc(x)+'">').join('')+'</datalist>';
+  return dl('dl-kz', kz)+dl('dl-stadt', st)+dl('dl-ort', ort);
+}
+
+/* ========== Zeitraum ========== */
+const WARN_CAT = [[/^Über 10/, 'über 10 h'], [/Ruhepause/, 'Pause zu kurz'], [/^Ruhezeit/, 'Ruhezeit unter 11 h'], [/Feiertag/, 'Feiertag'], [/Sonntag/, 'Sonntag'], [/^Offener/, 'offener Eintrag'], [/16 Stunden/, 'über 16 h Spanne'], [/^Fakturiert/, 'Faktura > Arbeit']];
+function warnCat(w){ const m = WARN_CAT.find(([re]) => re.test(w)); return m ? m[1] : 'sonstige'; }
+function rangeStats(from, to){
+  const today = todayStr(), rows = [], months = new Map(), cats = {};
+  const S = {arbeit:0, aktiv:0, passiv:0, km:0, fakt:0, intern:0, gutschrift:0, pause:0, soll:0, sollBis:0, istBis:0, warnCount:0, tage:0};
+  for(let n = dayNum(from); n <= dayNum(to); n++){
+    const date = fromNum(n), day = getDay(date), c = calcWithRest(date), soll = sollMin(date, day);
+    rows.push({date, day, c, soll});
+    const ym = monthOf(date), M = months.get(ym) || {ym, arbeit:0, aktiv:0, passiv:0, gutschrift:0, soll:0, fakt:0, intern:0, km:0, warn:0, tage:0, voll:true};
+    for(const T of [S, M]){ for(const k of ['arbeit','aktiv','passiv','km','fakt','intern','gutschrift']) T[k] += c[k]; T.soll += soll; if(day && !day.storniert) T.tage++; }
+    S.pause += c.pause; M.warn += c.warnings.length; S.warnCount += c.warnings.length;
+    if(date <= today){ S.sollBis += soll; S.istBis += c.arbeit + c.gutschrift; }
+    for(const w of c.warnings){ const k = warnCat(w); cats[k] = (cats[k] || 0) + 1; }
+    months.set(ym, M);
+  }
+  for(const M of months.values()){
+    M.voll = from <= M.ym+'-01' && to >= M.ym+'-'+pad(daysIn(M.ym));
+    const g = gehaltFor(M.ym), ml = mindestlohnFor(M.ym.slice(0, 4)), h = (M.arbeit + M.aktiv + M.gutschrift) / 60, hB = h + M.passiv / 60;
+    M.ml = {gehalt:g, ml, lohnA: g && h ? g / h : null, lohnB: g && hB ? g / hB : null};
+  }
+  const korr = LOG.filter(r => r.entity === 'day' && r.key >= from && r.key <= to && r.reason).map(r => ({date:r.key, seq:r.seq, at:r.recordedAt, source:r.source, reason:r.reason}));
+  return {rows, S, months:[...months.values()], cats, korr};
+}
+
 /* ========== Oberfläche ========== */
 const ST = {view:'heute', month:monthOf(todayStr()), edit:null, draft:null, sdraft:null};
 function toast(msg){ const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
@@ -399,18 +526,14 @@ function viewHeute(){
   else if(pauseOpen){ const p = day.pausen.find(p => p.von && !p.bis); status = 'Pause seit '+p.von; }
   else if(workOpen) status = 'Arbeit läuft seit '+day.beginn;
   else if(day.ende) status = 'Arbeit beendet um '+day.ende;
-  const btn = [];
-  if(!workOpen) btn.push('<button class="big primary" data-act="live:arbeit_start">'+(day.ende && date === t ? 'Arbeit wieder aufnehmen' : 'Arbeit starten')+'</button>');
-  if(workOpen && !pauseOpen) btn.push('<button class="big" data-act="live:pause_start">Pause starten</button>');
-  if(pauseOpen) btn.push('<button class="big primary" data-act="live:pause_ende">Pause beenden</button>');
-  if(workOpen) btn.push('<button class="big" data-act="live:arbeit_ende">Arbeit beenden</button>');
-  btn.push(reiseOpen ? '<button class="big primary" data-act="live:reise_ende">Reise beenden</button>' : '<button class="big" data-act="live:reise_start">Reise starten</button>');
+  const btn = liveActions().map(a => '<button class="big'+(a.primary ? ' primary' : '')+'" data-act="live:'+a.a+'">'+a.label+'</button>');
   const c = calcWithRest(t), d0 = getDay(t);
   const ort = d0 ? (d0.ortTyp + (d0.ortKuerzel ? ' '+d0.ortKuerzel : '') + (d0.stadt ? ', '+d0.stadt : '')) : '';
   return banners()+
     '<h1>'+fmtDate(t)+'</h1>'+
     '<div class="card"><div class="status">'+esc(status)+'</div>'+(date !== t ? '<div class="muted small">Offener Eintrag vom '+fmtDate(date)+'</div>' : '')+
-    '<div class="grid2" style="margin-top:10px">'+btn.join('')+'</div></div>'+
+    '<div class="grid2" style="margin-top:10px">'+btn.join('')+'</div>'+
+    (date === t ? '<button class="link" data-act="live-custom" style="margin-top:8px">Vergessen zu tippen? Mit anderer Uhrzeit ...</button>' : '')+'</div>'+
     '<div class="card"><h3>Heute</h3>'+
       '<div class="stat"><span>Arbeitszeit</span><b>'+fmtH(c.arbeit)+'</b></div>'+
       '<div class="stat"><span>Pausen</span><b>'+fmtH(c.pause)+'</b></div>'+
@@ -423,11 +546,48 @@ function viewHeute(){
     '<p class="muted small">Jeder Klick wird mit Uhrzeit gespeichert. Ort, fakturierte Stunden, Anlass und Belege am besten noch am selben Abend unter "Details" ergänzen.</p>';
 }
 
-async function live(action){
+function liveActions(){
+  const {date, day} = openDay(), t = todayStr();
+  const workOpen = !!(day.beginn && !day.ende), pauseOpen = day.pausen.some(p => p.von && !p.bis), reiseOpen = day.reisen.some(r => r.ab && !r.an);
+  const out = [];
+  if(!workOpen) out.push(day.ende && date === t ? {a:'arbeit_start', label:'Arbeit wieder aufnehmen', primary:true, seit:day.ende} : {a:'arbeit_start', label:'Arbeit starten', primary:true});
+  if(workOpen && !pauseOpen) out.push({a:'pause_start', label:'Pause starten'});
+  if(pauseOpen) out.push({a:'pause_ende', label:'Pause beenden', primary:true, seit:day.pausen.find(p => p.von && !p.bis).von});
+  if(workOpen) out.push({a:'arbeit_ende', label:'Arbeit beenden', seit:day.beginn});
+  out.push(reiseOpen ? {a:'reise_ende', label:'Reise beenden', primary:true, seit:day.reisen.find(r => r.ab && !r.an).ab} : {a:'reise_start', label:'Reise starten'});
+  return out;
+}
+async function liveCustom(){
+  const acts = liveActions(), now = hhmm();
+  const p = modal('Mit anderer Uhrzeit erfassen',
+    '<label>Was?</label><div class="chips" id="m-acts">'+acts.map((a,i) => '<button data-i="'+i+'"'+(i === 0 ? ' class="on"' : '')+'>'+a.label+'</button>').join('')+'</div>'+
+    '<label>Wann?</label><div class="chips" id="m-mins">'+[5,10,15,30,60].map(m => '<button data-m="'+m+'">vor '+m+' min</button>').join('')+'</div>'+
+    '<input type="time" id="m-t" value="'+now+'"><p class="muted small">Die App vermerkt, dass die Uhrzeit nachträglich gewählt wurde.</p>',
+    [{label:'Abbrechen', value:null}, {label:'Speichern', cls:'primary',
+      validate: m => {
+        const tt = m.querySelector('#m-t').value, a = acts[+m.querySelector('#m-acts .on').dataset.i];
+        if(toMin(tt) === null || toMin(tt) > toMin(hhmm())){ toast('Uhrzeit darf nicht in der Zukunft liegen'); return false; }
+        if(a.seit && toMin(tt) < toMin(a.seit)){ toast('Uhrzeit liegt vor dem Start um '+a.seit); return false; }
+        return true;
+      },
+      read: m => ({a:acts[+m.querySelector('#m-acts .on').dataset.i].a, t:m.querySelector('#m-t').value})}]);
+  const m = document.querySelector('.modal');
+  m.querySelectorAll('#m-acts button').forEach(b => b.onclick = () => { m.querySelectorAll('#m-acts button').forEach(x => x.classList.remove('on')); b.classList.add('on'); });
+  m.querySelectorAll('#m-mins button').forEach(b => b.onclick = () => { m.querySelector('#m-t').value = hhmm(new Date(Date.now() - b.dataset.m * 60000)); });
+  const v = await p;
+  if(v) await live(v.a, v.t);
+}
+
+async function live(action, customTime){
   const now = new Date(), today = todayStr(now);
   let t = hhmm(now);
   const od = openDay();
   let date = od.date, day = getDay(date) || newDay(date), reason = '', source = 'live';
+  if(customTime){
+    // Nachträglich gewählte Uhrzeit offen vermerken
+    t = customTime; source = 'live-korrigiert';
+    reason = 'Uhrzeit nachgetragen, '+(toMin(hhmm(now)) - toMin(customTime))+' min nach dem Ereignis erfasst';
+  }
   if(action === 'arbeit_start' || action === 'reise_start'){ date = today; day = getDay(today) || newDay(today); }
   else if(date < today){
     // Offener Eintrag vom Vortag: echte Endzeit erfragen statt die Uhrzeit von jetzt zu nehmen
@@ -449,11 +609,15 @@ async function live(action){
     const r = day.reisen.find(r => r.ab && !r.an);
     if(r){
       r.an = t;
-      const v = await modal('Reise '+r.ab+' bis '+t, legFields(r, 'm'), [{label:'Später', value:null}, {label:'Übernehmen', cls:'primary', read: m => readLeg(m, 'm')}]);
+      const fav = favorites().wege;
+      const p = modal('Reise '+r.ab+' bis '+t, wegChips(fav, 'mw')+legFields(r, 'm'), [{label:'Später', value:null}, {label:'Übernehmen', cls:'primary', read: m => readLeg(m, 'm')}]);
+      const mm = document.querySelector('.modal');
+      mm.querySelectorAll('[data-mw]').forEach(b => b.onclick = () => fillLeg(mm, 'm', fav[+b.dataset.mw]));
+      const v = await p;
       if(v) Object.assign(r, v, {ab:r.ab, an:t});
     }
   }
-  day.live.push({a:action, at:now.toISOString()});
+  day.live.push(customTime ? {a:action, at:now.toISOString(), zeit:t} : {a:action, at:now.toISOString()});
   await append('day', date, day, reason, source);
   toast('Gespeichert: '+t);
   render();
@@ -461,14 +625,37 @@ async function live(action){
 
 function legFields(r, p){
   const mittel = ['Auto','Bahn','Flug','Bus/ÖPNV','Taxi','Sonstiges'];
-  return '<div class="grid2"><div><label>Von</label><input id="'+p+'-von" value="'+esc(r.von)+'"></div><div><label>Nach</label><input id="'+p+'-nach" value="'+esc(r.nach)+'"></div></div>'+
+  return '<div class="grid2"><div><label>Von</label><input id="'+p+'-von" list="dl-ort" value="'+esc(r.von)+'"></div><div><label>Nach</label><input id="'+p+'-nach" list="dl-ort" value="'+esc(r.nach)+'"></div></div>'+
     '<div class="grid2"><div><label>Verkehrsmittel</label><select id="'+p+'-mittel">'+mittel.map(x => '<option'+(x === r.mittel ? ' selected' : '')+'>'+x+'</option>').join('')+'</select></div><div><label>km (bei Auto)</label><input id="'+p+'-km" inputmode="decimal" value="'+esc(r.km)+'"></div></div>'+
     '<label class="check"><input type="checkbox" id="'+p+'-selbst"'+(r.selbst ? ' checked' : '')+'>Selbst gefahren</label>'+
     '<div class="grid2"><div><label>Unterwegs gearbeitet (min)</label><input id="'+p+'-gmin" inputmode="numeric" value="'+esc(r.gearbeitetMin)+'"></div><div><label>Was gearbeitet</label><input id="'+p+'-gwas" value="'+esc(r.gearbeitetWas)+'" placeholder="z. B. Mails, Konzept"></div></div>';
 }
+function wegChips(fav, attr, prefix){ return fav.length ? '<div class="chips">'+fav.map((w,i) => '<button data-'+attr+'="'+(prefix || '')+i+'">'+esc(wegLabel(w))+'</button>').join('')+'</div>' : ''; }
+function fillLeg(m, p, w){ const g = id => m.querySelector('#'+p+'-'+id); g('von').value = w.von; g('nach').value = w.nach; g('mittel').value = w.mittel; g('km').value = w.km || ''; g('selbst').checked = !!w.selbst; }
 function readLeg(m, p){ const g = id => m.querySelector('#'+p+'-'+id); return {von:g('von').value.trim(), nach:g('nach').value.trim(), mittel:g('mittel').value, km:g('km').value.trim(), selbst:g('selbst').checked, gearbeitetMin:g('gmin').value.trim(), gearbeitetWas:g('gwas').value.trim()}; }
 
+function tageSeg(){ const w = ST.tmode === 'woche'; return '<div class="seg"><button data-act="tmode:liste"'+(w ? '' : ' class="on"')+'>Liste</button><button data-act="tmode:woche"'+(w ? ' class="on"' : '')+'>Woche</button></div>'; }
+function viewWoche(){
+  const mon = ST.week || (ST.week = mondayOf(todayStr())), {rows, S} = weekStats(mon), sun = addDays(mon, 6);
+  const stat = (l, v) => '<div class="stat"><span>'+l+'</span><b>'+v+'</b></div>';
+  const tr = rows.map(r => {
+    const c = r.c, d = r.day, hn = holidayName(r.date, blOf(d));
+    const art = !d ? (hn || '-') : d.storniert ? 'storniert' : d.tagTyp !== 'Arbeit' ? d.tagTyp : '';
+    return '<tr data-act="edit:'+r.date+'"><td>'+WT[weekday(r.date)]+' '+r.date.slice(8)+'.</td>'+
+      (art ? '<td colspan="4" class="muted">'+esc(art)+'</td>' : '<td class="n">'+fmtH(c.arbeit).replace(' h', '')+'</td><td class="n">'+fmtH(c.aktiv + c.passiv).replace(' h', '')+'</td><td class="n">'+fmtH(c.fakt).replace(' h', '')+'</td><td class="n">'+(c.warnings.length || '')+'</td>')+'</tr>';
+  }).join('');
+  const quote = S.soll ? Math.round(S.fakt / S.soll * 100)+' %' : '-';
+  return '<div class="row between"><button data-act="week:-1">‹</button><h1 style="margin:0">KW '+isoWeek(mon)+'</h1><button data-act="week:1">›</button></div>'+
+    '<p class="muted small" style="text-align:center">'+fmtDate(mon)+' bis '+fmtDate(sun)+'</p>'+
+    '<div class="card"><table class="t"><thead><tr><th>Tag</th><th class="n">Arbeit</th><th class="n">Reise</th><th class="n">Fakt.</th><th class="n">Hinw.</th></tr></thead><tbody>'+tr+'</tbody></table></div>'+
+    '<div class="card"><h3>Woche</h3>'+stat('Arbeitszeit', fmtH(S.arbeit))+(S.gutschrift ? stat('Urlaub/Krank gutgeschrieben', fmtH(S.gutschrift)) : '')+
+      stat('Soll Woche', fmtH(S.soll))+stat('Saldo bis heute ohne Reise', fmtH(S.istBis - S.sollBis))+stat('Saldo inkl. aktiver Reise', fmtH(S.istBis + S.aktiv - S.sollBis))+stat('Saldo inkl. aller Reise', fmtH(S.istBis + S.aktiv + S.passiv - S.sollBis))+
+      stat('Fakturiert / intern', fmtH(S.fakt)+' / '+fmtH(S.intern))+stat('Fakturaquote (fakturiert / Soll)', quote)+
+      stat('Reise aktiv / passiv', fmtH(S.aktiv)+' / '+fmtH(S.passiv))+stat('Kilometer', S.km.toLocaleString('de-DE')+' km')+
+      (S.warnCount ? '<div class="warn">'+S.warnCount+' Hinweis'+(S.warnCount > 1 ? 'e' : '')+' in dieser Woche.</div>' : '')+'</div>';
+}
 function viewTage(){
+  if(ST.tmode === 'woche') return banners()+tageSeg()+viewWoche();
   const ym = ST.month, {rows} = monthStats(ym), today = todayStr();
   const list = rows.filter(r => r.date <= today || r.day).reverse().map(r => {
     const hn = holidayName(r.date, blOf(r.day)), we = weekday(r.date) === 0 || weekday(r.date) === 6;
@@ -478,7 +665,7 @@ function viewTage(){
     const c = r.c, info = r.day.storniert ? 'storniert' : r.day.tagTyp !== 'Arbeit' ? r.day.tagTyp : fmtH(c.arbeit)+(c.aktiv + c.passiv ? ' · Reise '+fmtH(c.aktiv + c.passiv) : '');
     return '<div class="day'+(r.day.storniert ? ' storno' : '')+'" data-act="edit:'+r.date+'"><span class="d">'+fmtDate(r.date)+(hn ? '<span class="chip">'+esc(hn)+'</span>' : '')+'</span><span>'+esc(info)+(c.warnings.length ? ' <span class="chip" style="color:var(--warn)">'+c.warnings.length+' Hinweis'+(c.warnings.length > 1 ? 'e' : '')+'</span>' : '')+'</span></div>';
   }).join('');
-  return banners()+monthNav()+'<div class="card">'+(list || '<p class="muted">Keine Tage.</p>')+'</div>'+
+  return banners()+tageSeg()+monthNav()+'<div class="card">'+(list || '<p class="muted">Keine Tage.</p>')+'</div>'+
     '<button data-act="edit-pick">Anderen Tag nachtragen</button>';
 }
 function monthNav(){ return '<div class="row between"><button data-act="month:-1">‹</button><h1 style="margin:0">'+fmtMonth(ST.month)+'</h1><button data-act="month:1">›</button></div><div style="height:10px"></div>'; }
@@ -488,20 +675,31 @@ function viewEdit(){
   const sel = (id, opts, v) => '<select id="'+id+'">'+opts.map(o => '<option'+(o === v ? ' selected' : '')+'>'+o+'</option>').join('')+'</select>';
   const bl = '<select id="e-bl"><option value="">wie Homeoffice ('+esc(LAENDER[settings().bundesland] || 'nicht gesetzt')+')</option>'+Object.entries(LAENDER).map(([k,v]) => '<option value="'+k+'"'+(k === d.bundesland ? ' selected' : '')+'>'+v+'</option>').join('')+'</select>';
   const pausen = d.pausen.map((p,i) => '<div class="row" style="flex-wrap:nowrap;margin-bottom:6px"><input type="time" class="p-von" value="'+esc(p.von)+'"><span>bis</span><input type="time" class="p-bis" value="'+esc(p.bis)+'"><select class="p-art" style="width:auto"><option value="Pause">Pause</option><option value="Unterbrechung"'+(p.art === 'Unterbrechung' ? ' selected' : '')+'>Unterbr.</option></select><button data-act="del-pause:'+i+'" class="danger" aria-label="Pause entfernen">×</button></div>').join('');
-  const reisen = d.reisen.map((r,i) => '<fieldset class="leg"><legend>Reise '+(i+1)+'</legend><div class="grid2"><div><label>Abfahrt</label><input type="time" class="r-ab" value="'+esc(r.ab)+'"></div><div><label>Ankunft</label><input type="time" class="r-an" value="'+esc(r.an)+'"></div></div>'+legFields(r, 'r'+i)+'<button class="danger" data-act="del-reise:'+i+'">Reise entfernen</button></fieldset>').join('');
+  const fav = favorites();
+  const ortChips = fav.orte.length ? '<div class="chips">'+fav.orte.map((o,i) => '<button data-act="fav-ort:'+i+'">'+esc(ortLabel(o))+'</button>').join('')+'</div>' : '';
+  const vma = vmaDay(date, d);
+  const reisen = d.reisen.map((r,i) => '<fieldset class="leg"><legend>Reise '+(i+1)+'</legend>'+wegChips(fav.wege, 'act', 'fav-weg:'+i+':')+'<div class="grid2"><div><label>Abfahrt</label><input type="time" class="r-ab" value="'+esc(r.ab)+'"></div><div><label>Ankunft</label><input type="time" class="r-an" value="'+esc(r.an)+'"></div></div>'+legFields(r, 'r'+i)+'<button class="danger" data-act="del-reise:'+i+'">Reise entfernen</button></fieldset>').join('');
   const c = calcWithRest(date);
   return '<div class="row between"><button data-act="back">‹ Zurück</button><span class="muted small">'+(vers.length ? vers.length+' Version'+(vers.length > 1 ? 'en' : '') : 'neu')+'</span></div>'+
     '<h1>'+fmtDate(date)+'</h1>'+
     (cur && cur.storniert ? '<div class="bad">Dieser Tag ist storniert.</div>' : '')+
     warnList(c.warnings)+
-    '<div class="card"><div class="grid2"><div><label>Art des Tages</label>'+sel('e-typ', ['Arbeit','Urlaub','Krank','Feiertag','Frei'], d.tagTyp)+'</div><div><label>Ort</label>'+sel('e-ort', ['Homeoffice','Kunde','Büro','Sonstiges'], d.ortTyp)+'</div></div>'+
-    '<div class="grid2"><div><label>Kunden-Kürzel</label><input id="e-kz" value="'+esc(d.ortKuerzel)+'" placeholder="nur Kürzel"></div><div><label>Stadt</label><input id="e-stadt" value="'+esc(d.stadt)+'"></div></div>'+
+    datalists()+
+    '<div class="card">'+ortChips+'<div class="grid2"><div><label>Art des Tages</label>'+sel('e-typ', ['Arbeit','Urlaub','Krank','Feiertag','Frei'], d.tagTyp)+'</div><div><label>Ort</label>'+sel('e-ort', ['Homeoffice','Kunde','Büro','Sonstiges'], d.ortTyp)+'</div></div>'+
+    '<div class="grid2"><div><label>Kunden-Kürzel</label><input id="e-kz" list="dl-kz" value="'+esc(d.ortKuerzel)+'" placeholder="nur Kürzel"></div><div><label>Stadt</label><input id="e-stadt" list="dl-stadt" value="'+esc(d.stadt)+'"></div></div>'+
     '<label>Bundesland des Arbeitsorts (Feiertage)</label>'+bl+'</div>'+
     '<div class="card"><h3>Arbeitszeit</h3><div class="grid2"><div><label>Beginn</label><input type="time" id="e-beginn" value="'+esc(d.beginn)+'"></div><div><label>Ende</label><input type="time" id="e-ende" value="'+esc(d.ende)+'"></div></div>'+
     '<label>Pausen</label>'+pausen+'<button data-act="add-pause" style="margin-top:6px">+ Pause</button>'+
     '<div class="grid2"><div><label>Fakturiert (h)</label><input id="e-fh" inputmode="decimal" value="'+esc(d.faktH)+'"></div><div><label>Projekt-Kürzel</label><input id="e-fk" value="'+esc(d.faktKuerzel)+'"></div></div>'+
     '<div class="grid2"><div><label>Intern (errechnet)</label><div id="e-intern" style="padding:9px 0;font-weight:600">'+fmtH(calc(date, d).intern)+'</div></div><div><label>Art intern</label><input id="e-ia" value="'+esc(d.internArt)+'" placeholder="Schulung, Meeting, Admin"></div></div></div>'+
     '<div class="card"><h3>Reisezeit</h3><p class="muted small">Reisen hier getrennt erfassen. Liegt eine Reise innerhalb von Beginn und Ende, zieht die App sie automatisch von der Arbeitszeit ab und zählt sie als Reise.</p>'+reisen+'<button data-act="add-reise">+ Reise</button></div>'+
+    '<div class="card"><h3>Auswärts (Steuer)</h3>'+
+      '<label class="check"><input type="checkbox" id="e-ueb"'+(d.uebernachtung ? ' checked' : '')+'>Übernachtung auswärts (Nacht nach diesem Tag)</label>'+
+      '<label>Mahlzeiten gestellt (z. B. Frühstück im Hotel)</label>'+
+      '<label class="check"><input type="checkbox" id="e-mf"'+(d.fruehstueck ? ' checked' : '')+'>Frühstück</label>'+
+      '<label class="check"><input type="checkbox" id="e-mm"'+(d.mittag ? ' checked' : '')+'>Mittagessen</label>'+
+      '<label class="check"><input type="checkbox" id="e-ma"'+(d.abend ? ' checked' : '')+'>Abendessen</label>'+
+      '<div class="muted small" id="e-vma">'+vmaText(vma)+'</div></div>'+
     '<div class="card"><label>Anlass / veranlasst durch</label><textarea id="e-anlass" placeholder="z. B. Kundentermin 8 Uhr vor Ort, Einladung von Projektleitung">'+esc(d.anlass)+'</textarea>'+
     '<label>Belege (wo abgelegt)</label><input id="e-belege" value="'+esc(d.belege)+'" placeholder="z. B. Bahnticket in Drive, Kalendereinladung">'+
     '<label>Notiz</label><textarea id="e-notiz">'+esc(d.notiz)+'</textarea></div>'+
@@ -518,6 +716,14 @@ function readEdit(){
   d.reisen = [...document.querySelectorAll('fieldset.leg')].map((f,i) => Object.assign(readLeg(f, 'r'+i), {ab:f.querySelector('.r-ab').value, an:f.querySelector('.r-an').value}));
   d.faktH = v('e-fh'); d.faktKuerzel = v('e-fk'); d.internArt = v('e-ia');
   d.anlass = v('e-anlass'); d.belege = v('e-belege'); d.notiz = v('e-notiz');
+  d.uebernachtung = $('#e-ueb').checked; d.fruehstueck = $('#e-mf').checked; d.mittag = $('#e-mm').checked; d.abend = $('#e-ma').checked;
+}
+function vmaText(v){
+  const abw = v.abw !== null ? 'Abwesenheit laut Reisen: '+fmtH(v.abw)+'. ' : '';
+  if(v.hinweis) return esc(abw + v.hinweis);
+  if(v.abw === null && !v.pausch) return 'Relevant bei Reisen oder Übernachtung: Daraus errechnet die App die Verpflegungspauschale.';
+  if(!v.pausch) return esc(abw+'Keine Verpflegungspauschale (eintägig erst über 8 h Abwesenheit).');
+  return esc(abw+'Verpflegungspauschale ('+v.art+'): '+eur(v.pausch)+(v.kuerz ? ' minus '+eur(Math.min(v.kuerz, v.pausch))+' für gestellte Mahlzeiten' : '')+' = '+eur(v.betrag)+'.');
 }
 async function saveDay(){
   readEdit();
@@ -532,7 +738,7 @@ async function saveDay(){
   toast('Gespeichert'); ST.view = 'tage'; ST.month = monthOf(date); render();
 }
 
-const LABELS = {tagTyp:'Art',ortTyp:'Ort',ortKuerzel:'Kürzel',stadt:'Stadt',bundesland:'Bundesland',beginn:'Beginn',ende:'Ende',pausen:'Pausen',faktH:'Fakturiert',faktKuerzel:'Projekt',internH:'Intern',internArt:'Art intern',anlass:'Anlass',belege:'Belege',notiz:'Notiz',reisen:'Reisen',storniert:'Storniert'};
+const LABELS = {tagTyp:'Art',ortTyp:'Ort',ortKuerzel:'Kürzel',stadt:'Stadt',bundesland:'Bundesland',beginn:'Beginn',ende:'Ende',pausen:'Pausen',faktH:'Fakturiert',faktKuerzel:'Projekt',internH:'Intern',internArt:'Art intern',anlass:'Anlass',belege:'Belege',notiz:'Notiz',reisen:'Reisen',uebernachtung:'Übernachtung',fruehstueck:'Frühstück gestellt',mittag:'Mittag gestellt',abend:'Abend gestellt',storniert:'Storniert'};
 function fmtVal(k, v){
   if(k === 'pausen') return v.map(p => p.von+'-'+(p.bis || '?')+(p.art === 'Unterbrechung' ? ' (Unterbrechung)' : '')).join(', ') || 'keine';
   if(k === 'reisen') return v.map(r => r.ab+'-'+(r.an || '?')+' '+r.mittel+(r.selbst ? ' selbst' : '')).join('; ') || 'keine';
@@ -569,7 +775,56 @@ function viewMonat(){
       (S.fehl.length ? '<div class="warn">'+S.fehl.length+' Werktag'+(S.fehl.length > 1 ? 'e' : '')+' ohne Eintrag: '+S.fehl.map(d => d.slice(8)+'.').join(', ')+'</div>' : '')+
       (S.warnCount ? '<div class="warn">'+S.warnCount+' Hinweis'+(S.warnCount > 1 ? 'e' : '')+' in diesem Monat, Details unter "Tage".</div>' : '')+'</div>'+
     '<div class="card"><h3>Mindestlohn-Check</h3>'+ml+'</div>'+
-    '<div class="row"><button data-act="csv">CSV exportieren</button><button data-act="print">Monatsbericht (PDF)</button></div>';
+    '<div class="row"><button data-act="csv">CSV exportieren</button><button data-act="print">Monatsbericht (PDF)</button></div>'+
+    '<div class="row" style="margin-top:8px"><button data-act="range">Bericht für Zeitraum</button><button data-act="steuer">Steuer: Verpflegung '+ST.month.slice(0, 4)+'</button></div>';
+}
+
+function viewSteuer(){
+  const y = ST.year, V = vmaYear(y), stat = (l, v) => '<div class="stat"><span>'+l+'</span><b>'+v+'</b></div>';
+  const tr = V.rows.map(r => '<tr data-act="edit:'+r.date+'"><td>'+fmtDate(r.date).slice(0, 9)+'</td><td>'+esc(r.v.hinweis ? 'entfällt' : r.v.art)+(r.d.ortKuerzel ? ' · '+esc(r.d.ortKuerzel) : '')+'</td><td class="n">'+eur(r.v.betrag)+'</td></tr>').join('');
+  return '<div class="row"><button data-act="nav:monat">‹ Monat</button></div>'+
+    '<div class="row between"><button data-act="year:-1">‹</button><h1 style="margin:0">Verpflegung '+y+'</h1><button data-act="year:1">›</button></div><div style="height:10px"></div>'+
+    '<div class="card"><h3>Verpflegungsmehraufwand</h3>'+stat('Tage mit Anspruch', V.rows.filter(r => r.v.betrag > 0).length)+stat('Pauschalen', eur(V.pausch))+stat('Kürzung gestellte Mahlzeiten', '- '+eur(V.kuerz))+stat('Absetzbar (Werbungskosten)', eur(V.betrag))+
+      '<p class="muted small">Fahrtkosten (Tickets, 0,30 €/km) und Hotel erstattet der Arbeitgeber, daher hier nicht absetzbar. Gefahrene km '+y+' zur Info: '+V.km.toLocaleString('de-DE')+' km. Pauschalen: '+eur(num(settings().vmaKlein))+' / '+eur(num(settings().vmaGross))+' (unter Mehr änderbar). Orientierung, keine Steuerberatung.</p></div>'+
+    '<div class="card">'+(tr ? '<table class="t"><thead><tr><th>Tag</th><th>Art</th><th class="n">Betrag</th></tr></thead><tbody>'+tr+'</tbody></table>' : '<p class="muted">Noch keine Tage mit Reise über 8 h oder Übernachtung.</p>')+'</div>'+
+    '<button data-act="steuer-csv">CSV für die Steuererklärung</button>';
+}
+function csvVma(y){
+  const q = v => '"'+String(v ?? '').replace(/"/g, '""')+'"', V = vmaYear(y), e2 = x => x.toFixed(2).replace('.', ',');
+  const lines = [['Datum','Art','Kunde','Stadt','Abwesenheit (h)','Pauschale','Kürzung','Betrag','Hinweis'].map(q).join(';')];
+  for(const r of V.rows) lines.push([fmtDate(r.date).slice(3), r.v.art, r.d.ortKuerzel, r.d.stadt, r.v.abw !== null ? decH(r.v.abw) : '', e2(r.v.pausch), e2(Math.min(r.v.kuerz, r.v.pausch)), e2(r.v.betrag), r.v.hinweis].map(q).join(';'));
+  lines.push(['Summe','','','','',e2(V.pausch),e2(V.kuerz),e2(V.betrag),''].map(q).join(';'));
+  return '﻿'+lines.join('\r\n');
+}
+
+async function rangeDialog(){
+  const from0 = settings().start || monthOf(todayStr())+'-01';
+  const v = await modal('Bericht für Zeitraum', '<div class="grid2"><div><label>Von</label><input type="date" id="m-from" value="'+from0+'"></div><div><label>Bis</label><input type="date" id="m-to" value="'+todayStr()+'"></div></div>',
+    [{label:'Abbrechen', value:null},
+     {label:'CSV', read: m => ({f:m.querySelector('#m-from').value, t:m.querySelector('#m-to').value, k:'csv'}), validate: rangeOk},
+     {label:'PDF', cls:'primary', read: m => ({f:m.querySelector('#m-from').value, t:m.querySelector('#m-to').value, k:'pdf'}), validate: rangeOk}]);
+  if(!v) return;
+  if(v.k === 'csv') download('zeitnachweis-'+v.f+'-bis-'+v.t+'.csv', csvRange(v.f, v.t), 'text/csv;charset=utf-8');
+  else printRange(v.f, v.t);
+}
+function rangeOk(m){ const f = m.querySelector('#m-from').value, t = m.querySelector('#m-to').value; const ok = f && t && f <= t; if(!ok) toast('Bitte gültigen Zeitraum wählen'); return ok; }
+function printRange(from, to){
+  const R = rangeStats(from, to), S = R.S, s = settings(), v = verifyChain(LOG);
+  const td = x => '<td>'+x+'</td>';
+  const mon = R.months.map(M => '<tr>'+td(fmtMonth(M.ym)+(M.voll ? '' : ' (anteilig)'))+td(fmtH(M.arbeit))+td(fmtH(M.gutschrift))+td(fmtH(M.soll))+td(fmtH(M.arbeit + M.gutschrift - M.soll))+td(fmtH(M.aktiv))+td(fmtH(M.passiv))+td(fmtH(M.fakt))+td(M.km)+td(M.warn)+td(M.voll && M.ml.gehalt !== null ? (M.ml.lohnA ? eur(M.ml.lohnA) : '-')+' / '+(M.ml.lohnB ? eur(M.ml.lohnB) : '-')+(M.ml.ml ? ' (ML '+eur(M.ml.ml)+')' : '') : '-')+'</tr>').join('');
+  const days = R.rows.filter(r => r.day).map(r => { const d = r.day, c = r.c; return '<tr>'+td(fmtDate(r.date))+td(esc(d.storniert ? 'storniert' : d.tagTyp))+td(esc(d.ortTyp+(d.ortKuerzel ? ' '+d.ortKuerzel : '')+(d.stadt ? ', '+d.stadt : '')))+td(esc(d.beginn)+'-'+esc(d.ende))+td(fmtH(c.pause))+td(fmtH(c.arbeit))+td(esc(d.reisen.map(x => x.ab+'-'+x.an+' '+x.mittel+(x.selbst ? ' (selbst)' : '')).join('; ')))+td(fmtH(c.aktiv))+td(fmtH(c.passiv))+td(fmtH(c.fakt))+td(esc(d.anlass))+td(esc(c.warnings.join(' / ')))+td(dayVersions(r.date).length)+'</tr>'; }).join('');
+  const korr = R.korr.map(k => '<tr>'+td(fmtDate(k.date))+td(k.seq)+td(fmtDT(k.at))+td(esc(k.source))+td(esc(k.reason))+'</tr>').join('');
+  const cats = Object.entries(R.cats).map(([k,n]) => esc(k)+': '+n).join(' · ') || 'keine';
+  $('#print').innerHTML = '<h1>Arbeits- und Reisezeitnachweis '+fmtDate(from)+' bis '+fmtDate(to)+(s.name ? ' · '+esc(s.name) : '')+'</h1>'+
+    '<h2>Zusammenfassung</h2><p>Arbeitszeit '+fmtH(S.arbeit)+' · Gutschrift Urlaub/Krank '+fmtH(S.gutschrift)+' · Soll '+fmtH(S.soll)+' (bis heute '+fmtH(S.sollBis)+')<br>'+
+    'Saldo bis heute: ohne Reise '+fmtH(S.istBis - S.sollBis)+' · inkl. aktiver Reise '+fmtH(S.istBis + S.aktiv - S.sollBis)+' · inkl. aller Reise '+fmtH(S.istBis + S.aktiv + S.passiv - S.sollBis)+'<br>'+
+    'Reise aktiv '+fmtH(S.aktiv)+' · Reise passiv '+fmtH(S.passiv)+' · Fakturiert '+fmtH(S.fakt)+' · Intern '+fmtH(S.intern)+' · km '+S.km+' · erfasste Tage '+S.tage+'<br>'+
+    'Hinweise: '+cats+'</p>'+
+    '<h2>Monate</h2><table><thead><tr><th>Monat</th><th>Arbeit</th><th>Gutschrift</th><th>Soll</th><th>Saldo</th><th>Reise aktiv</th><th>Reise passiv</th><th>Fakt.</th><th>km</th><th>Hinw.</th><th>Lohn je h (Arbeit+aktiv / inkl. alle Reise)</th></tr></thead><tbody>'+mon+'</tbody></table>'+
+    '<h2>Tage</h2><table><thead><tr><th>Datum</th><th>Art</th><th>Ort</th><th>Zeit</th><th>Pause</th><th>Arbeit</th><th>Reisen</th><th>Reise aktiv</th><th>Reise passiv</th><th>Fakt.</th><th>Anlass</th><th>Hinweise</th><th>Vers.</th></tr></thead><tbody>'+days+'</tbody></table>'+
+    '<h2>Korrekturen ('+R.korr.length+')</h2>'+(korr ? '<table><thead><tr><th>Tag</th><th>Version</th><th>erfasst</th><th>Quelle</th><th>Grund</th></tr></thead><tbody>'+korr+'</tbody></table>' : '<p>keine</p>')+
+    '<p style="font-size:8pt">Erstellt am '+fmtDT(new Date().toISOString())+' aus zeitnah geführten Aufzeichnungen. Hashkette '+(v.ok ? 'intakt' : 'NICHT intakt')+', '+LOG.length+' Einträge, Kopf-Hash '+(v.head || '-')+'. Alle Versionen sind im Backup enthalten.</p>';
+  window.print();
 }
 
 function viewMehr(){
@@ -588,6 +843,7 @@ function viewMehr(){
       '<label>Vertragliche Wochenarbeitszeit (h)</label><input id="s-woche" inputmode="decimal" value="'+esc(s.wochensoll)+'">'+
       '<label>Gehalt brutto, gültig ab Monat</label>'+gehalt+'<button data-act="add-gehalt" style="margin-top:6px">+ Gehaltsstufe</button>'+
       '<label>Mindestlohn je Stunde, gültig ab Jahr</label>'+mls+'<button data-act="add-ml" style="margin-top:6px">+ Jahr</button>'+
+      '<div class="grid2"><div><label>Verpflegung über 8 h / An- und Abreise (€)</label><input id="s-vk" inputmode="decimal" value="'+esc(s.vmaKlein)+'"></div><div><label>Verpflegung 24 h (€)</label><input id="s-vg" inputmode="decimal" value="'+esc(s.vmaGross)+'"></div></div>'+
       '<div class="row" style="margin-top:12px"><button class="primary" data-act="save-settings">Einstellungen speichern</button></div></div>'+
     '<div class="card"><h3>Backup</h3><p class="small muted">Die Daten liegen nur in diesem Browser. Regelmäßig sichern, z. B. in Dein privates Google Drive.</p>'+
       '<div class="row"><button class="primary" data-act="share-backup">Backup teilen</button><button data-act="dl-backup">Herunterladen</button><button data-act="import">Importieren</button></div>'+
@@ -613,11 +869,13 @@ function readSettings(){
   s.gehalt = ga.map((x,i) => ({ab:x.value, betrag:num(gb[i].value), art:gt[i].value}));
   const mj = [...document.querySelectorAll('.ml-jahr')], mb = [...document.querySelectorAll('.ml-betrag')];
   s.mindestlohn = mj.map((x,i) => ({jahr:parseInt(x.value, 10) || 0, betrag:num(mb[i].value)}));
+  s.vmaKlein = num($('#s-vk').value) || 14; s.vmaGross = num($('#s-vg').value) || 28;
 }
 
 /* ========== Export ========== */
-function csvMonth(ym){
-  const {rows} = monthStats(ym);
+function csvMonth(ym){ return csvRange(ym+'-01', ym+'-'+pad(daysIn(ym))); }
+function csvRange(from, to){
+  const {rows} = rangeStats(from, to);
   const q = v => '"'+String(v ?? '').replace(/"/g, '""')+'"';
   const head = ['Datum','Wochentag','Art','Ort','Kürzel','Stadt','Bundesland','Feiertag','Beginn','Ende','Pausen','Pause (h)','Arbeit (h)','Fakturiert (h)','Projekt','Intern (h)','Art intern','Reisen','Reise aktiv (h)','Reise passiv (h)','km','Anlass','Belege','Notiz','Hinweise','Soll (h)','Versionen','Zuletzt erfasst','Storniert'];
   const lines = [head.map(q).join(';')];
@@ -760,11 +1018,15 @@ window.addEventListener('online', () => { if(META.drivePending && getToken()) dr
 /* ========== Steuerung ========== */
 function render(){
   const app = $('#app');
-  const v = {heute:viewHeute, tage:viewTage, monat:viewMonat, mehr:viewMehr, edit:viewEdit, versions:viewVersions}[ST.view];
+  const v = {heute:viewHeute, tage:viewTage, monat:viewMonat, mehr:viewMehr, edit:viewEdit, versions:viewVersions, steuer:viewSteuer}[ST.view];
   app.innerHTML = v();
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.act === 'nav:'+(ST.view === 'edit' || ST.view === 'versions' ? 'tage' : ST.view)));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.act === 'nav:'+(ST.view === 'edit' || ST.view === 'versions' ? 'tage' : ST.view === 'steuer' ? 'monat' : ST.view)));
   // Im Tageseditor die errechnete interne Zeit beim Tippen mitführen
-  app.oninput = app.onchange = ST.view !== 'edit' ? null : () => { readEdit(); const el = $('#e-intern'); if(el) el.textContent = fmtH(calc(ST.edit, ST.draft).intern); };
+  app.oninput = app.onchange = ST.view !== 'edit' ? null : () => {
+    readEdit();
+    const el = $('#e-intern'); if(el) el.textContent = fmtH(calc(ST.edit, ST.draft).intern);
+    const vm = $('#e-vma'); if(vm) vm.innerHTML = vmaText(vmaDay(ST.edit, ST.draft));
+  };
   if(ST.view === 'mehr'){
     const p = $('#persist');
     if(p && navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(x => { p.textContent = x ? 'Speicher ist als dauerhaft markiert, der Browser löscht ihn nicht automatisch.' : 'Speicher ist nicht als dauerhaft markiert. App zum Startbildschirm hinzufügen und regelmäßig Backups machen.'; });
@@ -793,6 +1055,15 @@ document.addEventListener('click', async ev => {
       case 'del-pause': readEdit(); ST.draft.pausen.splice(+arg, 1); render(); break;
       case 'add-reise': readEdit(); ST.draft.reisen.push({ab:'', an:'', von:'', nach:'', mittel:'Auto', selbst:true, gearbeitetMin:'', gearbeitetWas:'', km:''}); render(); break;
       case 'del-reise': readEdit(); ST.draft.reisen.splice(+arg, 1); render(); break;
+      case 'fav-ort': readEdit(); Object.assign(ST.draft, favorites().orte[+arg]); render(); break;
+      case 'fav-weg': { readEdit(); const [li, fi] = arg.split(':').map(Number); const w = favorites().wege[fi]; Object.assign(ST.draft.reisen[li], {von:w.von, nach:w.nach, mittel:w.mittel, selbst:w.selbst, km:w.km}); render(); break; }
+      case 'live-custom': await liveCustom(); break;
+      case 'tmode': ST.tmode = arg; render(); break;
+      case 'week': ST.week = addDays(ST.week || mondayOf(todayStr()), 7 * +arg); render(); break;
+      case 'steuer': ST.year = ST.year || ST.month.slice(0, 4); ST.view = 'steuer'; render(); window.scrollTo(0, 0); break;
+      case 'year': ST.year = String(+ST.year + +arg); render(); break;
+      case 'steuer-csv': download('verpflegung-'+ST.year+'.csv', csvVma(ST.year), 'text/csv;charset=utf-8'); break;
+      case 'range': await rangeDialog(); break;
       case 'save-day': await saveDay(); break;
       case 'storno': case 'restore': {
         const reason = await askReason(act === 'storno' ? 'Warum wird dieser Tag storniert? Er bleibt als Version sichtbar.' : 'Warum wird der Tag wiederhergestellt?');
