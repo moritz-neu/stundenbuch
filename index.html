@@ -760,7 +760,7 @@ function offenePunkte(){
   const today = todayStr(), L = luecken();
   const R = tripsIn(addDays(today, -365), today).filter(t => t.fertig && t.st === 'offen');
   const F = [];
-  for(let w = 1; w <= 4; w++){ const mon = addDays(mondayOf(today), -7 * w); for(const r of fkWeek(mon)) if(!r.gebucht) F.push(r); }
+  for(let w = 1; w <= 4; w++){ const mon = addDays(mondayOf(today), -7 * w), S = weekStats(mon).S; if(S.arbeit > 0 && !status('sf:'+mon)) F.push({mon, real:S.arbeit}); }
   return {L, R, F};
 }
 
@@ -908,8 +908,8 @@ function offenKarte(){
   return '<details class="card sec" data-sec="offen"'+((ST.secOpen && 'offen' in ST.secOpen) ? (ST.secOpen.offen ? ' open' : '') : ' open')+'><summary><h3>'+ico('warn')+' Zu erledigen ('+n+')</h3></summary>'+
     L.map(x => li('edit:'+x.date, kurz(x.date), esc(x.t))).join('')+
     R.map(x => li('nav:rk', ico('car')+' Reise '+fmtSpan(x.start, x.end)+(x.ort ? ' '+esc(x.ort) : ''), 'nicht in Perk eingereicht')).join('')+
-    F.map(x => li('fk-week:'+x.mon, ico('briefcase')+' KW '+isoWeek(x.mon)+' '+esc(x.kz)+' '+fmtH(x.min), 'nicht offiziell gebucht')).join('')+
-    '<p class="muted small">Prüft die letzten 14 Tage, Reisen der letzten 12 Monate und die Fakturakontrolle der letzten 4 Wochen.</p></details>';
+    F.map(x => li('fk-week:'+x.mon, ico('briefcase')+' KW '+isoWeek(x.mon)+' real '+fmtH(x.real), 'Salesforce-Woche nicht eingelesen')).join('')+
+    '<p class="muted small">Prüft die letzten 14 Tage, Reisen der letzten 12 Monate und ob die Salesforce-Wochen der letzten 4 Wochen eingelesen sind.</p></details>';
 }
 function liveActions(){
   const {date, day} = openDay(), t = todayStr();
@@ -1029,7 +1029,7 @@ function viewWoche(){
     '<div class="card"><table class="t"><thead><tr><th>Tag</th><th class="n">Arbeit</th><th class="n">Reise</th><th class="n">Fakt.</th><th class="n">Hinw.</th></tr></thead><tbody>'+tr+'</tbody></table></div>'+
     '<div class="card"><h3>Woche</h3>'+stat('Arbeitszeit', fmtH(S.arbeit))+(S.gutschrift ? stat('Urlaub/Krank gutgeschrieben', fmtH(S.gutschrift)) : '')+
       stat('Soll Woche', fmtH(S.soll))+stat('Saldo bis heute ohne Reise', fmtH(S.istBis - S.sollBis))+stat('Saldo inkl. aktiver Reise', fmtH(S.istBis + S.aktiv - S.sollBis))+stat('Saldo inkl. aller Reise', fmtH(S.istBis + S.aktiv + S.passiv - S.sollBis))+
-      stat('Fakturiert / intern', fmtH(S.fakt)+' / '+fmtH(S.intern))+stat('Fakturaquote (fakturiert / Soll ohne Urlaub, Krank)', quote)+
+      stat('Fakturiert / intern', fmtH(S.fakt)+' / '+fmtH(S.intern))+stat('Nicht fakturiert (Arbeit minus fakturiert)', fmtH(S.arbeit - S.fakt))+stat('Fakturaquote (fakturiert / Soll ohne Urlaub, Krank)', quote)+
       stat('Reise aktiv / passiv', fmtH(S.aktiv)+' / '+fmtH(S.passiv))+stat('Kilometer', S.km.toLocaleString('de-DE')+' km')+
       (S.warnCount ? '<div class="warn">'+S.warnCount+' Hinweis'+(S.warnCount > 1 ? 'e' : '')+' in dieser Woche.</div>' : '')+'</div>'+
     (vorlageWoche(mon).length ? '<button data-act="woche-vorlage">'+ico('hist')+' Wie letzte Woche vorbelegen ('+vorlageWoche(mon).length+' Tage)</button>' : '');
@@ -1108,7 +1108,7 @@ function viewEdit(){
     '<div id="e-zeit"'+(abwesend(d) ? ' style="display:none"' : '')+'>'+
     '<div class="card"><h3>'+ico('briefcase')+' Arbeitszeit</h3><div class="grid2"><div><label>Beginn</label><input type="time" id="e-beginn" value="'+esc(d.beginn)+'"></div><div><label>Ende</label><input type="time" id="e-ende" value="'+esc(d.ende)+'"></div></div>'+
     '<label>Pausen</label>'+pausen+'<button data-act="add-pause" style="margin-top:6px">+ Pause</button>'+
-    '<label>Fakturiert (Projekt-Kürzel und Stunden)</label>'+d.buchungen.map((b,i) => '<div class="brow"><input class="b-kz" list="dl-pk" value="'+esc(b.kz)+'" placeholder="Kürzel"><input class="b-h" inputmode="decimal" value="'+esc(b.h)+'" placeholder="h"><button data-act="del-buch:'+i+'" class="danger" aria-label="Buchung entfernen">×</button></div>').join('')+
+    '<label>Fakturiert (aus Salesforce, Korrektur hier möglich)</label>'+d.buchungen.map((b,i) => '<div class="brow"><input class="b-kz" list="dl-pk" value="'+esc(b.kz)+'" placeholder="Kürzel"><input class="b-h" inputmode="decimal" value="'+esc(b.h)+'" placeholder="h"><button data-act="del-buch:'+i+'" class="danger" aria-label="Buchung entfernen">×</button></div>').join('')+
     '<button data-act="add-buch" style="margin-top:2px">+ Buchung</button>'+
     '<div class="grid2"><div><label>Intern (errechnet)</label><div id="e-intern" style="padding:9px 0;font-weight:600">'+fmtH(calc(date, d).intern)+'</div></div><div><label>Art intern</label><input id="e-ia" value="'+esc(d.internArt)+'" placeholder="Schulung, Meeting, Admin"></div></div></div>'+
     sec('reise', 'car', 'Reisezeit'+(d.reisen.length ? ' ('+d.reisen.length+')' : ''), d.reisen.length > 0, '<p class="muted small">Reisen hier getrennt erfassen. Liegt eine Reise innerhalb von Beginn und Ende, zieht die App sie automatisch von der Arbeitszeit ab und zählt sie als Reise.</p>'+reisen+'<button data-act="add-reise">+ Reise</button>')+
@@ -1297,25 +1297,93 @@ function printSteuer(y){
   window.print();
 }
 
+function fmtStand(st){ return st ? st.slice(8, 10)+'.'+st.slice(5, 7)+'. '+st.slice(11, 16) : ''; }
 function viewFk(){
-  const ym = ST.month, first = ym+'-01', last = ym+'-'+pad(daysIn(ym)), weeks = [];
+  const ym = ST.month, first = ym+'-01', last = ym+'-'+pad(daysIn(ym)), weeks = [], today = todayStr();
   for(let mon = mondayOf(first); mon <= last; mon = addDays(mon, 7)) weeks.push(mon);
+  const stat = (l, v, cls) => '<div class="stat"><span>'+l+'</span><b'+(cls ? ' style="color:var(--'+cls+')"' : '')+'>'+v+'</b></div>';
   const body = weeks.map(mon => {
-    const rows = fkWeek(mon);
-    const tr = rows.map(r => '<tr data-act="fk-row:'+mon+':'+esc(r.kz)+'"><td>'+esc(r.kz)+'</td><td class="n">'+fmtH(r.min).replace(' h', '')+'</td><td class="n">'+(r.off === null ? '-' : fmtH(r.off).replace(' h', ''))+'</td><td class="n">'+(r.abw === null ? '-' : r.abw === 0 ? '0' : fmtS(r.abw).replace(' h', ''))+'</td><td>'+(r.gebucht ? '<span class="chip good">gebucht</span>' : '<span class="chip warn">offen</span>')+'</td></tr>').join('');
-    return '<div class="card"><h3>KW '+isoWeek(mon)+' <span class="muted small">'+fmtDate(mon).slice(3, 9)+' bis '+fmtDate(addDays(mon, 6)).slice(3, 9)+'</span></h3>'+
-      (tr ? '<table class="t"><thead><tr><th>Kürzel</th><th class="n">App</th><th class="n">Offiziell</th><th class="n">Abw.</th><th></th></tr></thead><tbody>'+tr+'</tbody></table>' : '<p class="muted small">Keine fakturierten Stunden.</p>')+'</div>';
+    const S = weekStats(mon).S, sf = status('sf:'+mon), nf = S.arbeit - S.fakt, rows = fkWeek(mon);
+    const chip = sf ? '<span class="chip good">Salesforce '+esc(fmtStand(sf.stand))+'</span>' : S.arbeit > 0 && addDays(mon, 6) < today ? '<span class="chip warn">nicht eingelesen</span>' : '';
+    return '<div class="card"><h3>KW '+isoWeek(mon)+' <span class="muted small">'+fmtDate(mon).slice(3, 9)+' bis '+fmtDate(addDays(mon, 6)).slice(3, 9)+'</span> '+chip+'</h3>'+
+      stat('Real gearbeitet', fmtH(S.arbeit))+stat('Fakturiert'+(sf ? ' (Salesforce)' : ''), fmtH(S.fakt))+
+      stat('Nicht fakturiert', fmtH(nf), nf > 0 ? 'warn' : '')+stat('Nicht fakturiert inkl. aktiver Reise', fmtH(nf + S.aktiv))+
+      (rows.length ? '<p class="muted small" style="margin:6px 0 0">'+rows.map(r => esc(r.kz)+' '+fmtH(r.min)).join(' · ')+'</p>' : '')+'</div>';
   }).join('');
-  return '<div class="row"><button data-act="nav:monat">'+ico('back')+' Auswertung</button></div>'+monthNav().replace('<h1 style="margin:0">', '<h1 style="margin:0">Faktura ')+body+
-    '<p class="muted small">Zeile antippen: offiziell gebuchte Stunden eintragen und als gebucht markieren. Abweichung = offiziell minus App.</p>';
+  return '<div class="row"><button data-act="nav:monat">'+ico('back')+' Auswertung</button></div>'+monthNav().replace('<h1 style="margin:0">', '<h1 style="margin:0">Faktura ')+
+    '<button class="big primary" data-act="sf-einlesen" style="margin-bottom:12px">'+ico('briefcase')+'<span>Salesforce-Woche einlesen</span></button>'+body+
+    '<p class="muted small">Real gearbeitet = erfasste Arbeitszeit ohne Reise. Fakturiert kommt aus Salesforce (Code von Milo, freitags). Nicht fakturiert = real minus fakturiert.</p>';
 }
-async function fkRow(arg){
-  const i = arg.indexOf(':'), mon = arg.slice(0, i), kz = arg.slice(i + 1), r = fkWeek(mon).find(x => x.kz === kz); if(!r) return;
-  const s = status('fk:'+mon+':'+kz) || {};
-  const v = await modal('KW '+isoWeek(mon)+' · '+kz, '<p class="muted">In der App: '+fmtH(r.min)+'</p><label>Offiziell gebucht (h)</label><input id="m-off" inputmode="decimal" value="'+esc(s.offiziellH ?? decH(r.min))+'"><label class="check"><input type="checkbox" id="m-geb"'+(s.gebucht || !('gebucht' in s) ? ' checked' : '')+'>In der offiziellen Zeiterfassung gebucht</label>',
-    [{label:'Abbrechen', value:null}, {label:'Speichern', cls:'primary', read: m => ({offiziellH:m.querySelector('#m-off').value.trim(), gebucht:m.querySelector('#m-geb').checked})}]);
-  if(!v) return;
-  await append('status', 'fk:'+mon+':'+kz, Object.assign(v, {appH:decH(r.min)}), '', 'manuell'); toast('Gespeichert'); render();
+/* Salesforce-Woche: Code prüfen, Vorschau, Übernehmen */
+function sfParse(code){
+  code = String(code || '').trim().replace(/\s+/g, '');
+  const i = code.lastIndexOf(';#'); if(i < 0) throw new Error('Kein gültiger Code (Prüfsumme fehlt)');
+  const body = code.slice(0, i), sum = code.slice(i + 2).toLowerCase(), p = body.split(';');
+  if(p[0] !== 'ZN1') throw new Error('Kein Zeitnachweis-Code');
+  if(sha256(body).slice(0, 6) !== sum) throw new Error('Prüfsumme stimmt nicht, Code bitte neu scannen oder genau abtippen');
+  const mon = p[1], stand = p[2];
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(mon) || weekday(mon) !== 1) throw new Error('Woche im Code ungültig');
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(stand)) throw new Error('Stand im Code ungültig');
+  const days = [[], [], [], [], [], [], []];
+  for(const part of p.slice(3)){
+    const m = /^([0-6]):(.+)$/.exec(part); if(!m) throw new Error('Tagesangabe ungültig: '+part);
+    for(const e of m[2].split(',')){
+      const x = /^([A-Za-z0-9_-]{1,12})=(\d+(?:\.\d+)?)$/.exec(e); if(!x) throw new Error('Buchung ungültig: '+e);
+      days[+m[1]].push({kz:x[1], h:x[2].replace('.', ',')});
+    }
+  }
+  return {mon, stand, sum, days};
+}
+function sfPlan(P){
+  const key = list => stable(list.filter(b => b.kz || b.h).map(b => [b.kz, num(b.h)]).sort());
+  const rows = [], hinweise = [];
+  for(let i = 0; i < 7; i++){
+    const date = addDays(P.mon, i), cur = getDay(date), neu = P.days[i];
+    if(cur && (cur.storniert || abwesend(cur))){ if(neu.length) hinweise.push(fmtDate(date)+': '+(cur.storniert ? 'storniert' : cur.tagTyp)+' eingetragen, Salesforce-Buchung '+neu.map(b => b.kz+' '+b.h+' h').join(', ')+' nicht übernommen.'); continue; }
+    if(!cur && !neu.length) continue;
+    const old = cur ? cur.buchungen.filter(b => b.kz || b.h) : [];
+    rows.push({date, cur, old, neu, change: key(old) !== key(neu), real: cur ? calc(date, cur).arbeit : 0});
+    if(!cur) hinweise.push(fmtDate(date)+': kein Eintrag in der App, der Tag wird nur mit den Salesforce-Stunden angelegt.');
+  }
+  return {rows, hinweise};
+}
+async function sfDialog(){
+  let stream = null, timer = null;
+  const p = modal('Salesforce-Woche einlesen', '<div id="m-cam"></div><p class="muted small" id="m-camtxt">Kamera wird gestartet ...</p><label>oder Code eingeben</label><textarea id="m-code" placeholder="ZN1;..." autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>',
+    [{label:'Abbrechen', value:null}, {label:'Prüfen', cls:'primary', read: m => m.querySelector('#m-code').value}]);
+  const mm = document.querySelector('.modal'), txt = mm.querySelector('#m-camtxt');
+  setTimeout(() => { if(document.activeElement) document.activeElement.blur(); }, 80);
+  const stop = () => { clearInterval(timer); if(stream) stream.getTracks().forEach(t => t.stop()); };
+  if('BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    try{
+      const det = new BarcodeDetector({formats:['qr_code']});
+      stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+      if(!document.body.contains(mm)){ stop(); return; }
+      const v = document.createElement('video'); v.setAttribute('playsinline', ''); v.muted = true; v.srcObject = stream; v.style.cssText = 'width:100%;border-radius:10px;background:#000';
+      mm.querySelector('#m-cam').appendChild(v); await v.play(); txt.textContent = 'QR-Code von Milo ins Bild halten.';
+      timer = setInterval(async () => {
+        try{ const r = await det.detect(v); const hit = r.find(x => (x.rawValue || '').startsWith('ZN1;'));
+          if(hit){ stop(); mm.querySelector('#m-code').value = hit.rawValue; txt.textContent = 'Code erkannt.'; try{ navigator.vibrate && navigator.vibrate(30); }catch(e){} mm.querySelector('[data-mi="1"]').click(); } } catch(e){}
+      }, 300);
+    } catch(e){ txt.textContent = 'Kamera nicht verfügbar ('+(e.name || e.message)+'). Bitte den Code unter dem QR-Code abtippen.'; }
+  } else txt.textContent = 'Kamera-Scan wird von diesem Browser nicht unterstützt. Bitte den Code unter dem QR-Code abtippen.';
+  const code = await p; stop();
+  if(!code) return;
+  let P; try{ P = sfParse(code); } catch(e){ toast(e.message); return; }
+  const {rows, hinweise} = sfPlan(P), ch = rows.filter(r => r.change), alt = status('sf:'+P.mon);
+  if(!ch.length && alt && alt.sum === P.sum){ toast('KW '+isoWeek(P.mon)+' ist schon auf diesem Stand'); return; }
+  const fmtB = l => l.length ? l.map(b => esc(b.kz)+' '+esc(b.h || '0')).join(', ') : '-';
+  const tab = rows.map(r => '<tr'+(r.change ? ' style="font-weight:600"' : '')+'><td>'+fmtDate(r.date).slice(0, 9)+'</td><td>'+fmtB(r.neu)+'</td><td>'+fmtB(r.old)+'</td><td class="n">'+fmtH(r.real).replace(' h', '')+'</td></tr>').join('');
+  const ok = await modal('KW '+isoWeek(P.mon)+' · Stand '+fmtStand(P.stand),
+    '<table class="t"><thead><tr><th>Tag</th><th>Salesforce</th><th>bisher</th><th class="n">real</th></tr></thead><tbody>'+(tab || '<tr><td colspan="4" class="muted">keine Buchungen</td></tr>')+'</tbody></table>'+
+    hinweise.map(h => '<div class="warn">'+esc(h)+'</div>').join('')+
+    '<p class="muted small">'+(ch.length ? ch.length+' Tag'+(ch.length > 1 ? 'e werden' : ' wird')+' geändert (fett). Fakturierte Stunden der Woche werden durch Salesforce ersetzt, jede Änderung bleibt in den Versionen sichtbar.' : 'Keine Änderung an den Tagen, nur der Stand wird vermerkt.')+'</p>',
+    [{label:'Abbrechen', value:false}, {label:'Übernehmen', cls:'primary', value:true}]);
+  if(!ok) return;
+  const grund = 'Fakturiert aus Salesforce übernommen (Stand '+fmtStand(P.stand)+', Code #'+P.sum+')';
+  for(const r of ch){ const d = r.cur ? clone(r.cur) : newDay(r.date); d.buchungen = r.neu.map(b => ({kz:b.kz, h:b.h})); syncFakt(d); await append('day', r.date, d, grund, 'salesforce'); }
+  if(!alt || alt.sum !== P.sum) await append('status', 'sf:'+P.mon, {stand:P.stand, sum:P.sum, tage:ch.length}, '', 'salesforce');
+  ST.month = monthOf(P.mon); toast('KW '+isoWeek(P.mon)+' übernommen, '+ch.length+' Tag'+(ch.length === 1 ? '' : 'e')+' geändert'); render();
 }
 function viewRk(){
   const today = todayStr(), T = tripsIn(addDays(today, -365), today).reverse();
@@ -1407,7 +1475,7 @@ const HILFE = '<p class="small"><b>Täglich, am besten noch am selben Abend:</b>
   '<p class="small"><b>Nur eigene Daten:</b> Zeiten, Orte, Anlass. Keine Kundendokumente oder vertraulichen Details, Kürzel genügen. Nur auf privaten Geräten und Konten speichern.</p>'+
   '<p class="small"><b>Tagesarten:</b> "Urlaub" und "Krank" schalten die Zeiterfassung für den Tag ab und schreiben das Tagessoll gut (bei 40 h/Woche 8 h). "Frei / Freizeitausgleich" ist ein freier Werktag, z. B. Überstundenabbau, und mindert den Saldo im Konto. "Feiertag" setzt das Soll auf 0. Bei Pausen bedeutet "Unterbr." eine längere Unterbrechung (z. B. geteilter Dienst): Sie wird von der Arbeitszeit abgezogen, zählt aber nicht als Ruhepause.</p>'+
   '<p class="small"><b>Nichts schönen:</b> Korrekturen an vergangenen Tagen verlangen einen Grund und bleiben als Version sichtbar. Jeder Eintrag ist per Hashkette mit dem vorherigen verknüpft, nachträgliche Änderungen im Speicher fallen bei der Prüfung auf. Die Kette beweist nur, dass der Stand in sich stimmig ist. Unabhängige Zeitbelege sind die Drive-Tagesdateien und z. B. eine Mail an Dich selbst mit dem Kopf-Hash zum Monatsende.</p>'+
-  '<p class="small"><b>Mehrere Projekte:</b> Im Tag unter "Fakturiert" je Projekt eine Zeile mit Kürzel und Stunden. Wöchentlich unter Auswertung → Fakturakontrolle mit der offiziellen Zeiterfassung abgleichen und als gebucht markieren. Reisen unter Auswertung → Reisekosten auf "in Perk eingereicht" und "erstattet" setzen.</p>'+
+  '<p class="small"><b>Fakturiert aus Salesforce:</b> Am Handy nur die reale Arbeitszeit erfassen. Freitags am Firmen-PC Milo um die "Salesforce-Woche fürs Handy" bitten, dann Auswertung → Fakturakontrolle → "Salesforce-Woche einlesen" und den QR-Code scannen (oder den Code darunter abtippen). Die App ersetzt die fakturierten Stunden der Woche und zeigt real, fakturiert und nicht fakturiert. Reisen unter Auswertung → Reisekosten auf "in Perk eingereicht" und "erstattet" setzen.</p>'+
   '<p class="small"><b>Projektwoche:</b> Tage → Woche → "Wie letzte Woche vorbelegen" übernimmt Ort, Kürzel und Reisewege für leere Tage. "Reise starten" füllt dann den vorbelegten Weg.</p>'+
   '<p class="small"><b>Kurzbefehle:</b> Lange auf das App-Icon drücken: Arbeit starten, Pause (startet oder beendet), Reise (startet oder beendet).</p>'+
   '<p class="small"><b>Monatlich:</b> Monatsbericht als PDF sichern, mit der offiziellen Zeiterfassung abgleichen, Backup in die private Cloud. <b>Jährlich:</b> Auswertung → Steuer → Jahresübersicht (PDF).</p>'+
@@ -1673,7 +1741,7 @@ document.addEventListener('click', async ev => {
       case 'steuer': ST.year = ST.year || ST.month.slice(0, 4); ST.view = 'steuer'; render(); window.scrollTo(0, 0); break;
       case 'year': ST.year = String(+ST.year + +arg); render(); break;
       case 'steuer-pdf': printSteuer(ST.year); break;
-      case 'fk-row': await fkRow(arg); break;
+      case 'sf-einlesen': await sfDialog(); break;
       case 'fk-week': ST.month = monthOf(arg); ST.view = 'fk'; render(); window.scrollTo(0, 0); break;
       case 'rk-row': await rkRow(arg); break;
       case 'woche-vorlage': await wocheVorlage(); break;

@@ -94,12 +94,15 @@ Updates: geänderte Dateien einfach erneut hochladen. Die Daten auf dem Handy bl
 -----------------------------------------------
   - Einmalig: Mehr -> Einstellungen -> Urlaubsanspruch, Resturlaub bei Aufzeichnungsbeginn,
     Ziel-Fakturaquote (optional) eintragen.
-  - Täglich unter "Fakturiert" je Projekt eine Zeile: Kürzel und Stunden ("+ Buchung").
-  - Wöchentlich: Auswertung -> Fakturakontrolle, Zeile antippen, offiziell gebuchte Stunden
-    eintragen und als gebucht markieren.
+  - Täglich nur die reale Arbeitszeit erfassen. Fakturierte Stunden kommen aus Salesforce:
+    freitags am Firmen-PC Milo um die "Salesforce-Woche fürs Handy" bitten, dann
+    Auswertung -> Fakturakontrolle -> "Salesforce-Woche einlesen" und den QR-Code scannen
+    (oder den Code darunter abtippen). Die App ersetzt die fakturierten Stunden der Woche
+    und zeigt je Woche: real gearbeitet, fakturiert, nicht fakturiert.
+  - Korrekturen bleiben im Tag unter "Fakturiert" möglich (Kürzel und Stunden).
   - Nach jeder Reise: Auswertung -> Reisekosten, Stand auf "in Perk eingereicht" bzw. "erstattet".
   - Heute zeigt "Zu erledigen": Lücken der letzten 14 Tage, nicht eingereichte Reisen,
-    nicht gebuchte Wochen.
+    Wochen ohne eingelesene Salesforce-Stunden.
   - Projektwoche: Tage -> Woche -> "Wie letzte Woche vorbelegen" (nur Mo bis Fr, nur leere Tage).
   - Kurzbefehle: lange auf das App-Icon drücken (Arbeit, Pause, Reise). Nach dem Update
     erscheinen sie evtl. erst, wenn die App neu installiert wird.

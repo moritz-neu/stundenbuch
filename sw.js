@@ -1,5 +1,5 @@
 // Offline-Cache: erst Netz (für Updates), sonst Cache. Fremde Adressen (Google) laufen ungecacht durch.
-const CACHE = 'zeitnachweis-v4';
+const CACHE = 'zeitnachweis-v5';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
