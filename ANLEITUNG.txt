@@ -90,13 +90,41 @@ Updates: geänderte Dateien einfach erneut hochladen. Die Daten auf dem Handy bl
   - Wochenende auswärts: Tage ohne Eintrag zählen nicht. Die App weist darauf hin, dann nachtragen.
 
 
+4b. PROJEKTE, KONTEN, REISEKOSTEN (seit Stufe 5)
+-----------------------------------------------
+  - Einmalig: Mehr -> Einstellungen -> Urlaubsanspruch, Resturlaub bei Aufzeichnungsbeginn,
+    Ziel-Fakturaquote (optional) eintragen.
+  - Täglich unter "Fakturiert" je Projekt eine Zeile: Kürzel und Stunden ("+ Buchung").
+  - Wöchentlich: Auswertung -> Fakturakontrolle, Zeile antippen, offiziell gebuchte Stunden
+    eintragen und als gebucht markieren.
+  - Nach jeder Reise: Auswertung -> Reisekosten, Stand auf "in Perk eingereicht" bzw. "erstattet".
+  - Heute zeigt "Zu erledigen": Lücken der letzten 14 Tage, nicht eingereichte Reisen,
+    nicht gebuchte Wochen.
+  - Projektwoche: Tage -> Woche -> "Wie letzte Woche vorbelegen" (nur Mo bis Fr, nur leere Tage).
+  - Kurzbefehle: lange auf das App-Icon drücken (Arbeit, Pause, Reise). Nach dem Update
+    erscheinen sie evtl. erst, wenn die App neu installiert wird.
+  - Freizeitausgleich: Art des Tages "Frei / Freizeitausgleich", mindert das Konto.
+  - Urlaub und Krank: Art des Tages auf "Urlaub" oder "Krank" stellen. Die Zeiterfassung ist
+    für den Tag dann aus, das Tagessoll (bei 40 h/Woche 8 h) wird gutgeschrieben. Schon
+    eingetragene Zeiten werden beim Speichern entfernt (bleiben in den Versionen sichtbar).
+  - Fakturaquote: fakturiert geteilt durch Soll ohne Urlaub und Krank.
+  - Darstellung: Mehr -> Darstellung (System, Hell, Dunkel). Wischen blättert Monate,
+    Wochen und Jahre.
+
+
 5. MONATLICH
 ------------
-  - Monat -> "Monatsbericht (PDF)" -> Drucken -> "Als PDF speichern" -> in Drive ablegen.
-  - Monat -> "CSV exportieren" (öffnet sich in Excel/Sheets).
+  - Auswertung -> "Monatsbericht (PDF)" -> Drucken -> "Als PDF speichern" -> in Drive ablegen.
+  - Auswertung -> "CSV exportieren" (öffnet sich in Excel/Sheets).
   - Mit der offiziellen Zeiterfassung abgleichen, Abweichungen in der Notiz festhalten.
   - Mehr -> Prüfung: Hashkette muss "intakt" zeigen. Den Kopf-Hash per Mail an Dich selbst
     (privates Postfach) schicken. Damit gibt es einen unabhängigen Zeitbeleg für den Stand.
+
+
+5a. JÄHRLICH
+------------
+  - Auswertung -> Steuer -> "Jahresübersicht (PDF)": Homeoffice-Tagespauschale und
+    Verpflegungsmehraufwand für die Anlage N, dazu Übernachtungen, Reisetage und km zur Info.
 
 
 6. HANDYWECHSEL / DATEN WIEDERHERSTELLEN
