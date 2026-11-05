@@ -222,13 +222,15 @@ const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
 
 function todayStr(d = new Date()){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function hhmm(d = new Date()){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function hhmmss(d = new Date()){ return hhmm(d)+':'+pad(d.getSeconds()); }
 function dayNum(s){ const [y,m,d] = s.split('-').map(Number); return Date.UTC(y, m-1, d) / 864e5; }
 function fromNum(n){ const d = new Date(n * 864e5); return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()); }
 function weekday(s){ return new Date(dayNum(s) * 864e5).getUTCDay(); }
 function addDays(s, n){ return fromNum(dayNum(s) + n); }
 function fmtDate(s){ const [y,m,d] = s.split('-'); return WT[weekday(s)]+' '+d+'.'+m+'.'+y; }
 function fmtDT(iso){ const d = new Date(iso); return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+' '+hhmm(d); }
-function toMin(t){ if(!t || !/^\d{1,2}:\d{2}$/.test(t)) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
+// Uhrzeiten als HH:MM oder (seit Live-Klicks sekundengenau) HH:MM:SS; Ergebnis in Minuten, ggf. mit Bruchteil
+function toMin(t){ if(!t || !/^\d{1,2}:\d{2}(:\d{2})?$/.test(t)) return null; const [h,m,sec] = t.split(':').map(Number); return h*60+m+(sec || 0)/60; }
 function fmtH(min){ min = Math.round(min || 0); const s = min < 0 ? '-' : ''; min = Math.abs(min); return s+Math.floor(min/60)+':'+pad(min%60)+' h'; }
 function fmtS(min){ return (Math.round(min) > 0 ? '+' : '')+fmtH(min); }
 function decH(min){ return ((min || 0) / 60).toFixed(2).replace('.', ','); }
@@ -402,7 +404,7 @@ function calc(date, day){
   // Urlaub und Krank: Tagessoll gutschreiben, Zeiterfassung zählt an diesem Tag nicht
   if(abwesend(day)){ res.gutschrift = sollMin(date, day); return res; }
   // Laufender Tag: offenes Ende vorläufig mit der aktuellen Uhrzeit rechnen
-  const now = date === todayStr() ? hhmm() : null;
+  const now = date === todayStr() ? hhmmss() : null;
   const b = toMin(day.beginn);
   let ende = day.ende;
   if(b !== null && !ende){ res.open = true; if(now) { ende = now; res.vorlaeufig = true; } }
@@ -819,7 +821,7 @@ function openDay(){
 }
 
 function clockState(){
-  const t = todayStr(), {date, day} = openDay(), now = hhmm();
+  const t = todayStr(), {date, day} = openDay(), now = hhmmss();
   const r = day.reisen.find(r => r.ab && !r.an), p = day.pausen.find(p => p.von && !p.bis);
   if(r) return {label:'Reise läuft', seit:r.ab, min:span(r.ab, now), live:true, farbe:'var(--c-reise)'};
   if(p) return {label:'Pause', seit:p.von, min:span(p.von, now), live:true, farbe:'var(--c-pause)'};
@@ -828,14 +830,15 @@ function clockState(){
   return {label: day.ende && date === t ? 'Feierabend, Arbeitszeit heute' : 'Nicht im Dienst', min:calc(t, getDay(t)).arbeit, live:false, farbe:'var(--muted)'};
 }
 function clockText(cs){
-  const m = Math.max(0, Math.round(cs.min || 0)), hm = Math.floor(m / 60)+':'+pad(m % 60);
-  return cs.live ? hm+':'+pad(new Date().getSeconds()) : hm+' h';
+  // Laufend: echte Sekunden seit dem Start (ohne Pausen); sonst Stunden und Minuten
+  if(cs.live){ const sec = Math.max(0, Math.floor(Math.round((cs.min || 0) * 60000) / 1000)); return Math.floor(sec / 3600)+':'+pad(Math.floor(sec / 60) % 60)+':'+pad(sec % 60); }
+  const m = Math.max(0, Math.round(cs.min || 0)); return Math.floor(m / 60)+':'+pad(m % 60)+' h';
 }
 function segsOf(date, d){
   // Abschnitte des Tages in Minuten: a = Arbeit, r = Reise, p = Pause (in dieser Reihenfolge gezeichnet)
-  const now = date === todayStr() ? toMin(hhmm()) : null, segs = [];
+  const now = date === todayStr() ? toMin(hhmmss()) : null, segs = [];
   if(!d || d.storniert) return {segs, now};
-  const add = (cls, a, b) => { const x = toMin(a); let y = toMin(b || (now !== null && a ? hhmm() : '')); if(x === null || y === null) return; if(y < x) y = 1440; segs.push([cls, x, y]); };
+  const add = (cls, a, b) => { const x = toMin(a); let y = toMin(b || (now !== null && a ? hhmmss() : '')); if(x === null || y === null) return; if(y < x) y = 1440; segs.push([cls, x, y]); };
   add('a', d.beginn, d.ende);
   for(const r of d.reisen) add('r', r.ab, r.an);
   for(const p of d.pausen) add('p', p.von, p.bis);
@@ -930,7 +933,7 @@ async function liveCustom(){
       validate: m => {
         const tt = m.querySelector('#m-t').value, a = acts[+m.querySelector('#m-acts .on').dataset.i];
         if(toMin(tt) === null || toMin(tt) > toMin(hhmm())){ toast('Uhrzeit darf nicht in der Zukunft liegen'); return false; }
-        if(a.seit && toMin(tt) < toMin(a.seit)){ toast('Uhrzeit liegt vor dem Start um '+a.seit); return false; }
+        if(a.seit && toMin(tt) < Math.floor(toMin(a.seit))){ toast('Uhrzeit liegt vor dem Start um '+a.seit); return false; }
         return true;
       },
       read: m => ({a:acts[+m.querySelector('#m-acts .on').dataset.i].a, t:m.querySelector('#m-t').value})}]);
@@ -943,13 +946,13 @@ async function liveCustom(){
 
 async function live(action, customTime){
   const now = new Date(), today = todayStr(now);
-  let t = hhmm(now);
+  let t = hhmmss(now);
   const od = openDay();
   let date = od.date, day = getDay(date) || newDay(date), reason = '', source = 'live';
   if(customTime){
     // Nachträglich gewählte Uhrzeit offen vermerken
     t = customTime; source = 'live-korrigiert';
-    reason = 'Uhrzeit nachgetragen, '+(toMin(hhmm(now)) - toMin(customTime))+' min nach dem Ereignis erfasst';
+    reason = 'Uhrzeit nachgetragen, '+Math.round(toMin(hhmm(now)) - toMin(customTime))+' min nach dem Ereignis erfasst';
   }
   if(action === 'arbeit_start' || action === 'reise_start'){ date = today; day = getDay(today) || newDay(today); if(abwesend(day)){ toast('Heute ist '+day.tagTyp+' eingetragen. Zum Arbeiten erst die Art des Tages ändern.'); return; } }
   else if(date < today){
@@ -1124,6 +1127,7 @@ function viewEdit(){
     (cur ? (cur.storniert ? '<button data-act="restore">Wiederherstellen</button>' : '<button class="danger" data-act="storno">Stornieren</button>') : '')+
     (vers.length ? '<button data-act="versions:'+date+'">Versionen</button>' : '')+'</div>';
 }
+function secInputs(html){ return html.replace(/type="time"([^>]*?value="\d{1,2}:\d{2}:\d{2}")/g, 'type="time" step="1"$1'); }
 function lastSameWeekday(date){
   for(let w = 1; w <= 8; w++){ const x = addDays(date, -7 * w), d = getDay(x); if(d && !d.storniert && d.tagTyp === 'Arbeit') return x; }
   return null;
@@ -1605,7 +1609,7 @@ async function shortcut(){
 let CLOCK = null;
 function render(){
   const app = $('#app');
-  const v = {heute:viewHeute, tage:viewTage, monat:viewMonat, mehr:viewMehr, edit:viewEdit, versions:viewVersions, steuer:viewSteuer, fk:viewFk, rk:viewRk}[ST.view];
+  const v = {heute:viewHeute, tage:viewTage, monat:viewMonat, mehr:viewMehr, edit:() => secInputs(viewEdit()), versions:viewVersions, steuer:viewSteuer, fk:viewFk, rk:viewRk}[ST.view];
   app.innerHTML = v();
   // Laufende Uhr nur in der Heute-Ansicht; zur vollen Minute die Ansicht neu zeichnen (Tagesleiste, Kacheln)
   clearInterval(CLOCK);
